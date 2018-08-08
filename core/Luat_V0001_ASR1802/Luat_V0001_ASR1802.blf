@@ -1,0 +1,254 @@
+[BLF_Version]
+Blf_Version_Number = V2.0.0
+[UE_Options]
+UE_Boot_Option = 0
+[Flash_Properties]
+Flash_Block_Size = 0x10000
+Max_Upload_Split_Size = 0x1cff000
+Max_FBF_Split_Size = 0x1cff000
+Flash_Family = SPI-NOR
+Spare_Area_Size = 64
+Data_Area_Size = 2048
+FBF_Sector_Size = 4096
+[Flash_Options]
+Skip_Blocks_Number = 
+Erase_All_Flash = 0
+Reset_BBT = 0
+[TIM_Configuration]
+Number_of_Images = 12
+Number_of_Keys = 0
+Boot_Flash_Signature = 0x5350490A
+Processor_Type = PXA1202
+OEM_UniqueID = 0x21796B53
+Issue_Date = 0x20091029
+Version = 0x00030400
+Trusted = 0
+[Reserved_Data]
+UARTID
+Port(FFIDENTIFIER) = 0x00004646
+Enabled = 0x00000001
+End_UARTID
+LTWS
+LWG only = 0x00000003
+End_LTWS
+TRFU
+Enabled = 0x00000001
+Flash_Address = 0x041C0000
+Magic = 0x54524657
+End_TRFU
+End_Reserved_Data
+[Extended_Reserved_Data]
+Consumer_ID
+CID = TBRI
+PID = DDR1
+End_Consumer_ID
+DDR_Initialization
+DDR_PID = DDR1
+DDROperations
+DDR_INIT_ENABLE = 0x00000001
+DDR_MEMTEST_ENABLE = 0x00000000
+End_DDROperations
+Instructions
+WRITE = <0xB0000010,0xB0000000> 
+WRITE = <0xB0000020,0x00001220> 
+WRITE = <0xB0000080,0x01800000> 
+WRITE = <0xB0000090,0x00080000> 
+WRITE = <0xB00000F0,0xC0000000> 
+WRITE = <0xB00001A0,0x20C0C011> 
+WRITE = <0xB0000770,0x02000000> 
+WRITE = <0xB0000570,0x00000001> 
+WRITE = <0xB0000100,0x00090601> 
+WRITE = <0xB0000050,0x488B0196> 
+WRITE = <0xB0000060,0x32330102> 
+WRITE = <0xB0000190,0x20101009> 
+WRITE = <0xB00001C0,0x12820002> 
+WRITE = <0xB0000650,0x00080022> 
+WRITE = <0xB0000280,0x02020102> 
+WRITE = <0xB0000210,0x00000000> 
+WRITE = <0xB0000240,0x80000000> 
+WRITE = <0xB0000140,0x20004422> 
+WRITE = <0xB00001D0,0x1330077D> 
+WRITE = <0xB00001E0,0x03300770> 
+WRITE = <0xB00001F0,0xC0000077> 
+WRITE = <0xB0000200,0x0010310C> 
+WRITE = <0xB0000230,0xF0500003> 
+WRITE = <0xB0000E10,0x00500003> 
+WRITE = <0xB0000E20,0x00500003> 
+WRITE = <0xB0000E30,0x00500003> 
+WRITE = <0xB0000240,0x20000000> 
+WRITE = <0xB0000240,0x40000000> 
+WRITE = <0xB0000200,0x0010311C> 
+WRITE = <0xB0000120,0x00000001> 
+WAIT_FOR_BIT_SET = <0xB00001B0,0x00000001,0x00001000> 
+End_Instructions
+End_DDR_Initialization
+End_Extended_Reserved_Data
+[Image_List]
+1_Image_Enable = 1
+1_Image_Tim_Included = 1
+1_Image_Image_ID = 0x54494D48
+1_Image_Next_Image_ID = 0x4F424D49
+1_Image_Path = ntim_ddr.bin
+1_Image_Flash_Entry_Address = 0x00000000
+1_Image_Load_Address = 0xD1101000
+1_Image_Type = RAW
+1_Image_ID_Name = TIMH
+1_Image_Erase_Size = 
+1_Image_Partition_Number = 0
+1_Image_Size_To_CRC_in_bytes = 0
+1_Image_Hash_Algorithm_ID = 
+1_Image_Image_Size_To_Hash_in_bytes = 
+2_Image_Enable = 1
+2_Image_Tim_Included = 1
+2_Image_Image_ID = 0x4F424D49
+2_Image_Next_Image_ID = 0x52424C49
+2_Image_Path = Nezha_loader_MIFI_V5_SPI_NAND.bin
+2_Image_Flash_Entry_Address = 0x00006000
+2_Image_Load_Address = 0x01C00000
+2_Image_Type = RAW
+2_Image_ID_Name = OBMI
+2_Image_Erase_Size = 
+2_Image_Partition_Number = 0
+2_Image_Size_To_CRC_in_bytes = 0
+2_Image_Hash_Algorithm_ID = 
+2_Image_Image_Size_To_Hash_in_bytes = 
+3_Image_Enable = 0
+3_Image_Tim_Included = 1
+3_Image_Image_ID = 0x52424C49
+3_Image_Next_Image_ID = 0x52424C52
+3_Image_Path = ReliableData+FDD-B138+TDDB38-41.bin
+3_Image_Flash_Entry_Address = 0x00020000
+3_Image_Load_Address = 0x01D4F000
+3_Image_Type = RAW
+3_Image_ID_Name = RBLI
+3_Image_Erase_Size = 0x00020000
+3_Image_Partition_Number = 0
+3_Image_Size_To_CRC_in_bytes = 0
+3_Image_Hash_Algorithm_ID = 
+3_Image_Image_Size_To_Hash_in_bytes = 
+4_Image_Enable = 0
+4_Image_Tim_Included = 1
+4_Image_Image_ID = 0x52424C52
+4_Image_Next_Image_ID = 0x4F534C4F
+4_Image_Path = ReliableData+FDD-B138+TDDB38-41.bin
+4_Image_Flash_Entry_Address = 0x00040000
+4_Image_Load_Address = 0x01D4F000
+4_Image_Type = RAW
+4_Image_ID_Name = RBLR
+4_Image_Erase_Size = 0x00020000
+4_Image_Partition_Number = 0
+4_Image_Size_To_CRC_in_bytes = 0
+4_Image_Hash_Algorithm_ID = 
+4_Image_Image_Size_To_Hash_in_bytes = 
+5_Image_Enable = 1
+5_Image_Tim_Included = 1
+5_Image_Image_ID = 0x4F534C4F
+5_Image_Next_Image_ID = 0x47524249
+5_Image_Path = NZ_CP_LWG_MIFI_V5_TX.bin
+5_Image_Flash_Entry_Address = 0x00060000
+5_Image_Load_Address = 0x00000000
+5_Image_Type = RAW
+5_Image_ID_Name = OSLO
+5_Image_Erase_Size = 0x00A00000
+5_Image_Partition_Number = 0
+5_Image_Size_To_CRC_in_bytes = 0
+5_Image_Hash_Algorithm_ID = 
+5_Image_Image_Size_To_Hash_in_bytes = 
+6_Image_Enable = 1
+6_Image_Tim_Included = 1
+6_Image_Image_ID = 0x47524249
+6_Image_Next_Image_ID = 0x57454249
+6_Image_Path = NZ_LWG_M09_B0_SKL_Flash.bin
+6_Image_Flash_Entry_Address = 0x00A60000
+6_Image_Load_Address = 0x01D80000
+6_Image_Type = RAW
+6_Image_ID_Name = GRBI
+6_Image_Erase_Size = 0x00280000
+6_Image_Partition_Number = 0
+6_Image_Size_To_CRC_in_bytes = 0
+6_Image_Hash_Algorithm_ID = 
+6_Image_Image_Size_To_Hash_in_bytes = 
+7_Image_Enable = 1
+7_Image_Tim_Included = 0
+7_Image_Image_ID = 0x57454249
+7_Image_Next_Image_ID = 0x57494649
+7_Image_Path = WebData.bin
+7_Image_Flash_Entry_Address = 0x00D60000
+7_Image_Load_Address = 0xFFFFFFFF
+7_Image_Type = RAW
+7_Image_ID_Name = WEBI
+7_Image_Erase_Size = 0x00200000
+7_Image_Partition_Number = 0
+7_Image_Size_To_CRC_in_bytes = 0
+7_Image_Hash_Algorithm_ID = 
+7_Image_Image_Size_To_Hash_in_bytes = 
+8_Image_Enable = 1
+8_Image_Tim_Included = 0
+8_Image_Image_ID = 0x57494649
+8_Image_Next_Image_ID = 0x5743414C
+8_Image_Path = WIFI8801-NeZhaNoCal.bin
+8_Image_Flash_Entry_Address = 0x00F60000
+8_Image_Load_Address = 0xFFFFFFFF
+8_Image_Type = RAW
+8_Image_ID_Name = WIFI
+8_Image_Erase_Size = 0x00080000
+8_Image_Partition_Number = 0
+8_Image_Size_To_CRC_in_bytes = 0
+8_Image_Hash_Algorithm_ID = 
+8_Image_Image_Size_To_Hash_in_bytes = 
+9_Image_Enable = 1
+9_Image_Tim_Included = 0
+9_Image_Image_ID = 0x5743414C
+9_Image_Next_Image_ID = 0x5246424E
+9_Image_Path = WIFI8801-Call.bin
+9_Image_Flash_Entry_Address = 0x00FE0000
+9_Image_Load_Address = 0xFFFFFFFF
+9_Image_Type = RAW
+9_Image_ID_Name = WCAL
+9_Image_Erase_Size = 0x00080000
+9_Image_Partition_Number = 0
+9_Image_Size_To_CRC_in_bytes = 0
+9_Image_Hash_Algorithm_ID = 
+9_Image_Image_Size_To_Hash_in_bytes = 
+10_Image_Enable = 1
+10_Image_Tim_Included = 1
+10_Image_Image_ID = 0x5246424E
+10_Image_Next_Image_ID = 0x41504E4C
+10_Image_Path = FIC_SKY_v176_Hezhou_32X29_Skyworks_SKY77645_SKY77912_GSM.bin
+10_Image_Flash_Entry_Address = 0x01060000
+10_Image_Load_Address = 0x01FDFFC0
+10_Image_Type = RAW
+10_Image_ID_Name = RFBN
+10_Image_Erase_Size = 0x00020000
+10_Image_Partition_Number = 0
+10_Image_Size_To_CRC_in_bytes = 0
+10_Image_Hash_Algorithm_ID = 
+10_Image_Image_Size_To_Hash_in_bytes = 
+11_Image_Enable = 1
+11_Image_Tim_Included = 0
+11_Image_Image_ID = 0x41504E4C
+11_Image_Next_Image_ID = 0x004C5541
+11_Image_Path = AddtionalAPN.bin
+11_Image_Flash_Entry_Address = 0x041A0000
+11_Image_Load_Address = 0xFFFFFFFF
+11_Image_Type = RAW
+11_Image_ID_Name = APNL
+11_Image_Erase_Size = 
+11_Image_Partition_Number = 0
+11_Image_Size_To_CRC_in_bytes = 0
+11_Image_Hash_Algorithm_ID = 
+11_Image_Image_Size_To_Hash_in_bytes = 
+12_Image_Enable = 1
+12_Image_Tim_Included = 1
+12_Image_Image_ID = 0x004C5541
+12_Image_Next_Image_ID = 0xFFFFFFFF
+12_Image_Path = Lua_socket_demo.bin
+12_Image_Flash_Entry_Address = 0x05A00000
+12_Image_Load_Address = 0xFFFFFFFF
+12_Image_Type = RAW
+12_Image_ID_Name = LUA
+12_Image_Erase_Size = 0x00200000
+12_Image_Partition_Number = 0
+12_Image_Size_To_CRC_in_bytes = 0
+12_Image_Hash_Algorithm_ID = 
+12_Image_Image_Size_To_Hash_in_bytes = 

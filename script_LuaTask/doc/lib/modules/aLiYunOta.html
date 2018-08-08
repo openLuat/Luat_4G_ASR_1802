@@ -1,0 +1,227 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Luat开源项目脚本lib</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>script_LuaTask lib</h1>
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/aLiYun.html">aLiYun</a></li>
+  <li><strong>aLiYunOta</strong></li>
+  <li><a href="../modules/clib.html">clib</a></li>
+  <li><a href="../modules/common.html">common</a></li>
+  <li><a href="../modules/console.html">console</a></li>
+  <li><a href="../modules/errDump.html">errDump</a></li>
+  <li><a href="../modules/http.html">http</a></li>
+  <li><a href="../modules/lbsLoc.html">lbsLoc</a></li>
+  <li><a href="../modules/led.html">led</a></li>
+  <li><a href="../modules/link.html">link</a></li>
+  <li><a href="../modules/log.html">log</a></li>
+  <li><a href="../modules/misc.html">misc</a></li>
+  <li><a href="../modules/mqtt.html">mqtt</a></li>
+  <li><a href="../modules/net.html">net</a></li>
+  <li><a href="../modules/netLed.html">netLed</a></li>
+  <li><a href="../modules/ntp.html">ntp</a></li>
+  <li><a href="../modules/nvm.html">nvm</a></li>
+  <li><a href="../modules/patch.html">patch</a></li>
+  <li><a href="../modules/pins.html">pins</a></li>
+  <li><a href="../modules/pm.html">pm</a></li>
+  <li><a href="../modules/ril.html">ril</a></li>
+  <li><a href="../modules/sim.html">sim</a></li>
+  <li><a href="../modules/sms.html">sms</a></li>
+  <li><a href="../modules/socket.html">socket</a></li>
+  <li><a href="../modules/sys.html">sys</a></li>
+  <li><a href="../modules/update.html">update</a></li>
+  <li><a href="../modules/utils.html">utils</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>aLiYunOta</code></h1>
+<p>模块功能：阿里云物联网套件客户端OTA功能.</p>
+<pre>
+<p>
+ 目前固件签名算法仅支持MD5</p>
+</pre>
+    <h3>Info:</h3>
+    <ul>
+        <li><strong>Copyright</strong>: openLuat</li>
+        <li><strong>Release</strong>: 2018.04.16</li>
+        <li><strong>License</strong>: MIT</li>
+        <li><strong>Author</strong>: openLuat</li>
+    </ul>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#setVer">
+    setVer (version)
+    </a></td>
+	<td class="summary">设置当前的固件版本号</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setName">
+    setName (name)
+    </a></td>
+	<td class="summary">设置新固件保存的文件名</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setCb">
+    setCb (cbFnc)
+    </a></td>
+	<td class="summary">设置新固件下载后的回调函数</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "setVer"></a>
+    <strong  style="color: red;">
+    setVer (version)
+    </strong>
+    </dt>
+    <dd>
+    <pre class="example"  style="color: red;">设置当前的固件版本号</pre>
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">version</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+        <pre class="example">当前固件版本号</pre>
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ul>
+        <li>
+        <pre class="example">nil</pre></il>
+    </ul>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <li><pre class="example">aLiYunOta.setVer(<span class="string">"MCU_VERSION_1.0.0"</span>)</pre></il>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "setName"></a>
+    <strong  style="color: red;">
+    setName (name)
+    </strong>
+    </dt>
+    <dd>
+    <pre class="example"  style="color: red;">设置新固件保存的文件名</pre>
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">name</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+        <pre class="example">新固件下载后保存的文件名；注意此文件名并不是保存的完整路径，完整路径通过setCb设置的回调函数去获取</pre>
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ul>
+        <li>
+        <pre class="example">nil</pre></il>
+    </ul>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <li><pre class="example">aLiYunOta.setName(<span class="string">"MCU_FIRMWARE.bin"</span>)</pre></il>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "setCb"></a>
+    <strong  style="color: red;">
+    setCb (cbFnc)
+    </strong>
+    </dt>
+    <dd>
+    <pre class="example"  style="color: red;">设置新固件下载后的回调函数</pre>
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">cbFnc</span>
+            <span class="types"><span class="type">function</span></span>
+        <pre class="example">新固件下载后的回调函数
+ 回调函数的调用形式为：cbFnc(result,filePath)，result为下载结果，true表示成功，false或者nil表示失败；filePath为新固件文件保存的完整路径</pre>
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ul>
+        <li>
+        <pre class="example">nil</pre></il>
+    </ul>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <li><pre class="example">aLiYunOta.setCb(cbFnc)</pre></il>
+    </ul>
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
+<i style="float:right;">Last updated 2018-08-08 16:51:15 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
+

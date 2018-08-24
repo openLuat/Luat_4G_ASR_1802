@@ -67,9 +67,8 @@ local function ready(result,name,number)
     log.info("testPb.ready",result)
     if result then
         sys.timerStop(pb.read,1,ready)
-        --设置电话本存储区域，SM表示sim卡存储，ME表示终端存储，打开下面2行中的1行测试即可
-        --pb.setStorage("SM",storagecb)
-        pb.setStorage("ME",storagecb)
+        --设置电话本存储区域，SM表示sim卡存储
+        pb.setStorage("SM",storagecb)
     end
 end
 

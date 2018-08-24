@@ -29,11 +29,14 @@ function setDnsIP(ip1, ip2)
 end
 
 function shut()
+	ril.request("AT+CGACT=0,1")
+	ready = false
+	sys.publish('IP_ERROR_IND')
 end
 
 function pdpCmdCnf(curCmd, result,respdata, interdata)
-    log.info("link.pdpCmdCnf", result,respdata, interdata)
-    if string.find(curCmd, "CGDCONT?") then
+    log.info("link.pdpCmdCnf",curCmd, result,respdata, interdata)
+    if string.find(curCmd, "CGDCONT%?") then
         if result and interdata then
             local cid,pdptyp,apn,pdpaddr1,pdpaddr2,pdpaddr3,pdpaddr4=string.match(interdata, "(%d+),(.+),(.+),[\"\'](%d+).(%d+).(%d+).(%d+)[\"\']")
             if not cid or not pdptyp or not apn or not pdpaddr1 or not pdpaddr2 or not pdpaddr3 or not pdpaddr4 then
@@ -45,17 +48,16 @@ function pdpCmdCnf(curCmd, result,respdata, interdata)
             result=false
         end
     end
-    
     if result then
         if string.find(curCmd, "CGDCONT=") then
-            request('AT+CGDATA="",1', nil, pdpCmdCnf)
-        elseif string.find(curCmd, "CGDCONT?") then
+            request('AT+CGACT=1,1', nil, pdpCmdCnf)
+        elseif string.find(curCmd, "CGDCONT%?") then
             sys.timerStart(pdpCmdCnf, 100, "CONNECT_DELAY",true)
         elseif string.find(curCmd, "CONNECT_DELAY") then
             log.info("publish IP_READY_IND")
             ready = true
             publish("IP_READY_IND")
-        elseif string.find(curCmd, "CGDATA") then
+        elseif string.find(curCmd, "CGACT") then
             request("AT+CGDCONT?", nil, pdpCmdCnf)
         elseif string.find(curCmd, "CGDFLT") then
             request("AT+CGDCONT?", nil, pdpCmdCnf)
@@ -63,7 +65,8 @@ function pdpCmdCnf(curCmd, result,respdata, interdata)
             if not apnname then
                 sys.timerStart(pdpCmdCnf, 100, "SET_PDP_4G_WAITAPN",true)
             else
-                request(string.format('AT*CGDFLT=0,"IP","%s"', apnname), nil, pdpCmdCnf)
+			    request(string.format('AT+CGDCONT=1,"IP","%s"', apnname), nil, pdpCmdCnf)
+           --   request(string.format('AT*CGDFLT=0,"IP","%s"', apnname), nil, pdpCmdCnf)
             end
         end
     else
@@ -128,7 +131,8 @@ sys.subscribe("NET_STATE_REGISTERED", function()
         if not apnname then
             sys.timerStart(pdpCmdCnf, 1000, "SET_PDP_4G_WAITAPN",true)
         else
-            request(string.format('AT*CGDFLT=0,"IP","%s"', apnname), nil, pdpCmdCnf)
+			request(string.format('AT+CGDCONT=1,"IP","%s"', apnname), nil, pdpCmdCnf)
+--          request(string.format('AT*CGDFLT=0,"IP","%s"', apnname), nil, pdpCmdCnf)
         end
     else
         request('AT+CGATT?')

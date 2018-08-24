@@ -84,7 +84,7 @@ function setClock(t,cbFnc)
         return
     end
     setClkCbFnc = cbFnc
-    req(string.format("AT+CCLK=\"%02d/%02d/%02d,%02d:%02d:%02d+32\"", string.sub(t.year, 3, 4), t.month, t.day, t.hour, t.min, t.sec), nil, rsp)
+    req(string.format("AT+CCLK=\"%02d/%02d/%02d,%02d:%02d:%02d\"", string.sub(t.year, 3, 4), t.month, t.day, t.hour, t.min, t.sec), nil, rsp)
 end
 --- 获取系统时间
 -- @return table time,{year=2017,month=2,day=14,hour=14,min=19,sec=23}

@@ -19,6 +19,8 @@ local gsmRegistered
 local gprsAttached
 --是否有socket连接上后台，true为是，false或者nil为否
 local socketConnected
+--定义网络制式
+local netmode= net.NetMode_noNet
 
 --网络指示灯表示的工作状态
 --NULL：功能关闭状态
@@ -45,7 +47,11 @@ local ledBlinkTime =
 --网络指示灯开关，true为打开，false或者nil为关闭
 local ledSwitch = false
 --网络指示灯默认PIN脚（GPIO64）
-local ledPin = pio.P2_0
+local LEDPIN = pio.P2_0
+--LTE指示灯开关，true为打开，false或者nil为关闭
+local lteSwitch = false
+--LTE指示灯默认PIN脚（GPIO65）
+local LTEPIN = pio.P2_1
 
 
 --[[
@@ -74,6 +80,22 @@ local function updateState()
             sys.publish("NET_LED_UPDATE")
         end
     end
+end
+
+--[[ 
+-- 模块功能：更新LTE指示灯表示的工作状态
+-- 参数：无
+-- 返回值：无
+--]]
+local function updateState_LTE()
+    netMode=net.getnetmode()
+    if lteSwitch then
+	    if netMode == net.NetMode_LTE then
+		    sys.publish("LTE_LED_UPDATE",true)
+	    else
+		    sys.publish("LTE_LED_UPDATE",false)
+		end
+	end	
 end
 
 --[[
@@ -107,13 +129,34 @@ local function taskLed(ledPinSetFunc)
     end
 end
 
---- 配置网络指示灯并且立即执行配置后的动作
--- @bool flag，是否打开网络指示灯功能，true为打开，false为关闭
--- @number pin，控制网络指示灯闪烁的GPIO引脚，例如pio.P1_1表示GPIO33
+--[[
+-- 模块功能：LTE指示灯模块的运行任务
+-- 参数：
+       ledPinSetFunc：指示灯GPIO的设置函数
+-- 返回值：无
+--]]
+local function taskLte(ledPinSetFunc)
+    local arg
+    while true do
+	local _,arg = sys.waitUntil("LTE_LED_UPDATE")
+	    if lteSwitch then
+		    if arg == true then
+		        ledPinSetFunc(1)
+		    else 
+		        ledPinSetFunc(0)
+			end
+		end
+	end
+end
+
+--- 配置网络指示灯和LTE指示灯并且立即执行配置后的动作
+-- @bool flag，是否打开网络指示灯和LTE指示灯功能，true为打开，false为关闭
+-- @number ledPin，控制网络指示灯闪烁的GPIO引脚，例如pio.P2_0表示GPIO64
+-- @number ltePin，控制LTE指示灯闪烁的GPIO引脚，例如pio.P2_1表示GPIO65
 -- @return nil
--- @usage setup(true,pio.P1_1)表示打开网络指示灯功能，GPIO33控制指示灯
--- @usage setup(false)表示关闭网络指示灯功能
-function setup(flag,pin)
+-- @usage setup(true,pio.P2_0,pio.P2_1)表示打开网络指示灯和LTE指示灯功能，GPIO64控制网络指示灯，GPIO65控制LTE指示灯
+-- @usage setup(false)表示关闭网络指示灯和LTE指示灯功能
+function setup(flag,ledPin,ltePin)
     --log.info("netLed.setup",flag,pin,ledSwitch)
     local oldSwitch = ledSwitch
     if flag~=ledSwitch then
@@ -121,8 +164,14 @@ function setup(flag,pin)
         sys.publish("NET_LED_UPDATE")
     end
     if flag and not oldSwitch then
-        sys.taskInit(taskLed, pins.setup(pin or ledPin, 0))
-    end        
+        sys.taskInit(taskLed, pins.setup(ledPin or LEDPIN, 0))
+    end
+    if flag~=lteSwitch then
+	lteSwitch = flag	
+    end  
+	if flag then
+		sys.taskInit(taskLte, pins.setup(ltePin or LTEPIN, 0))  
+	end	
 end
 
 --- 配置某种工作状态下指示灯点亮和熄灭的时长（如果用户不配置，使用netLed.lua中ledBlinkTime配置的默认值）
@@ -154,3 +203,4 @@ sys.subscribe("NET_STATE_UNREGISTER", function() if gsmRegistered then gsmRegist
 sys.subscribe("NET_STATE_REGISTERED", function() if not gsmRegistered then gsmRegistered=true updateState() end end)
 sys.subscribe("GPRS_ATTACH", function(attach) if gprsAttached~=attach then gprsAttached=attach updateState() end end)
 sys.subscribe("SOCKET_ACTIVE", function(active) if socketConnected~=active then socketConnected=active updateState() end end)
+sys.subscribe("NET_UPD_NET_MODE", updateState_LTE)

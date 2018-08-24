@@ -76,17 +76,19 @@ end
 ]]
 local function creg(data)
     local p1, s
+    local prefix = (netMode == NetMode_LTE) and "+CEREG: " or (netMode == NetMode_noNet and "+CREG: " or "+CGREG: ")
+
     if netMode == NetMode_LTE then--4G 根据CEREG判断网络注册状态
-        if not string.find(data, "+CEREG") then return end        
+        if not string.find(data, "+CEREG") then log.info("creg is invalid",data) return end        
     elseif netMode == NetMode_noNet then--无网络 根据CREG判断网络注册状态
-        if not string.find(data, "+CREG") then return end        
+        if not string.find(data, "+CREG") then log.info("creg is invalid",data) return end        
     else--2/3/2.5G 根据CGREG判断网络注册状态
-        if not string.find(data, "+CGREG") then return end        
+        if not string.find(data, "+CGREG") then log.info("creg is invalid",data) return end        
     end
     --获取注册状态
-    _, _, p1 = string.find(data, "%d,(%d+)")
+    _, _, p1 = string.find(data, prefix .. "%d,(%d+)")
     if p1 == nil then
-        _, _, p1 = string.find(data, "(%d+)")
+        _, _, p1 = string.find(data, prefix .. "(%d+)")
         if p1 == nil then
             return
         end
@@ -363,7 +365,15 @@ local function UpdNetMode(data)
     if netMode ~= netMode_cur then
         netMode = netMode_cur
         publish("NET_UPD_NET_MODE",netMode)
-        log.info("net.NET_UPD_NET_MODE",netMode)       
+        log.info("net.NET_UPD_NET_MODE",netMode)   
+        
+        if netMode == NetMode_LTE then 
+            ril.request("AT+CEREG?")  
+        elseif netMode == NetMode_noNet then 
+            ril.request("AT+CREG?")  
+        else
+            ril.request("AT+CGREG?")  
+        end
     end
 end
 

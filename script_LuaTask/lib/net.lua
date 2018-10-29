@@ -4,7 +4,6 @@
 -- @license MIT
 -- @copyright openLuat
 -- @release 2017.02.17
-
 require "sys"
 require "ril"
 require "pio"
@@ -17,12 +16,12 @@ module(..., package.seeall)
 local publish = sys.publish
 
 --netmode define
-NetMode_noNet=   0
-NetMode_GSM=     1--2G
-NetMode_EDGE=    2--2.5G
-NetMode_TD=      3--3G
-NetMode_LTE=     4--4G
-NetMode_WCDMA=   5--3G
+NetMode_noNet = 0
+NetMode_GSM = 1 --2G
+NetMode_EDGE = 2 --2.5G
+NetMode_TD = 3 --3G
+NetMode_LTE = 4 --4G
+NetMode_WCDMA = 5 --3G
 local netMode = NetMode_noNet
 
 --GSM网络状态：
@@ -54,20 +53,19 @@ local cellinfo, multicellcb = {}
 ]]
 --[[
 local function checkCRSM()
-    local imsi = sim.getImsi()
-    if imsi and imsi ~= "" then
-        if string.sub(imsi, 1, 3) == "460" then
-            local mnc = string.sub(imsi, 4, 5)
-            if (mnc == "00" or mnc == "02" or mnc == "04" or mnc == "07") and creg3 then
-                ril.request("AT+CRSM=176,28539,0,0,12")
-            end
-        end
-    else
-        sys.timerStart(checkCRSM, 5000)
-    end
+local imsi = sim.getImsi()
+if imsi and imsi ~= "" then
+if string.sub(imsi, 1, 3) == "460" then
+local mnc = string.sub(imsi, 4, 5)
+if (mnc == "00" or mnc == "02" or mnc == "04" or mnc == "07") and creg3 then
+ril.request("AT+CRSM=176,28539,0,0,12")
+end
+end
+else
+sys.timerStart(checkCRSM, 5000)
+end
 end
 ]]
-
 --[[
 函数名：creg
 功能  ：解析CREG信息
@@ -77,13 +75,13 @@ end
 local function creg(data)
     local p1, s
     local prefix = (netMode == NetMode_LTE) and "+CEREG: " or (netMode == NetMode_noNet and "+CREG: " or "+CGREG: ")
-
-    if netMode == NetMode_LTE then--4G 根据CEREG判断网络注册状态
-        if not string.find(data, "+CEREG") then log.info("creg is invalid",data) return end        
-    elseif netMode == NetMode_noNet then--无网络 根据CREG判断网络注册状态
-        if not string.find(data, "+CREG") then log.info("creg is invalid",data) return end        
-    else--2/3/2.5G 根据CGREG判断网络注册状态
-        if not string.find(data, "+CGREG") then log.info("creg is invalid",data) return end        
+    
+    if netMode == NetMode_LTE then --4G 根据CEREG判断网络注册状态
+        if not string.find(data, "+CEREG") then log.info("creg is invalid", data) return end
+    elseif netMode == NetMode_noNet then --无网络 根据CREG判断网络注册状态
+        if not string.find(data, "+CREG") then log.info("creg is invalid", data) return end
+    else --2/3/2.5G 根据CGREG判断网络注册状态
+        if not string.find(data, "+CGREG") then log.info("creg is invalid", data) return end
     end
     --获取注册状态
     _, _, p1 = string.find(data, prefix .. "%d,(%d+)")
@@ -101,8 +99,8 @@ local function creg(data)
     else
         --[[
         if p1 == "3" then
-            creg3 = true
-            checkCRSM()
+        creg3 = true
+        checkCRSM()
         end
         ]]
         s = "UNREGISTER"
@@ -113,8 +111,6 @@ local function creg(data)
         if s == "REGISTERED" then
             --产生一个内部消息NET_STATE_CHANGED，表示GSM网络注册状态发生变化
             publish("NET_STATE_REGISTERED")
-            cengQueryPoll(60 * 1000)
-        else
             cengQueryPoll()
         end
         state = s
@@ -161,9 +157,9 @@ data：当前小区和临近小区信息字符串，例如下面中的每一行�
 ]]
 local function eemLteSvc(data)
     if string.find(data, "%+EEMLTESVC:%d+, %d+, %d+, .+") then
-        local mcc,mnc,lac,ci,rssi
+        local mcc, mnc, lac, ci, rssi
         local svcData = string.match(data, "%+EEMLTESVC:(.+)")
-
+        
         if svcData then
             svcDataT = string.split(svcData, ', ')
             mcc = svcDataT[1]
@@ -199,7 +195,7 @@ data：当前小区信息字符串，例如下面中的每一行：
 local function eemGsmInfoSvc(data)
     --只处理有效的CENG信息
     if string.find(data, "%+EEMGINFOSVC: %d+, %d+, %d+, .+") then
-        local mcc,mnc,lac,ci,ta,rssi
+        local mcc, mnc, lac, ci, ta, rssi
         local svcData = string.match(data, "%+EEMGINFOSVC:(.+)")
         if svcData then
             svcDataT = string.split(svcData, ', ')
@@ -236,7 +232,7 @@ data：当前小区和临近小区信息字符串，例如下面中的每一行�
 ]]
 local function eemGsmNCInfoSvc(data)
     if string.find(data, "%+EEMGINFONC: %d+, %d+, %d+, .+") then
-        local mcc,mnc,lac,ci,ta,rssi,id
+        local mcc, mnc, lac, ci, ta, rssi, id
         local svcData = string.match(data, "%+EEMGINFONC:(.+)")
         if svcData then
             svcDataT = string.split(svcData, ', ')
@@ -254,7 +250,7 @@ local function eemGsmNCInfoSvc(data)
             cellinfo[id + 2].lac = tonumber(lac)
             cellinfo[id + 2].ci = tonumber(ci)
             cellinfo[id + 2].rssi = (tonumber(rssi) == 99) and 0 or tonumber(rssi)
-            --cellinfo[id + 1].ta = tonumber(ta or "0")
+        --cellinfo[id + 1].ta = tonumber(ta or "0")
         end
     end
 end
@@ -269,7 +265,7 @@ data：当前小区和临近小区信息字符串，例如下面中的每一行�
 local function eemUMTSInfoSvc(data)
     --只处理有效的CENG信息
     if string.find(data, "%+EEMUMTSSVC: %d+, %d+, %d+, .+") then
-        local mcc,mnc,lac,ci,rssi
+        local mcc, mnc, lac, ci, rssi
         local svcData = string.match(data, "%+EEMUMTSSVC:(.+)")
         local cellMeasureFlag, cellParamFlag = string.match(data, "%+EEMUMTSSVC:%d+, (%d+), (%d+), .+")
         local svcDataT = string.split(svcData, ', ')
@@ -279,18 +275,18 @@ local function eemUMTSInfoSvc(data)
                 offset = offset + 2
                 rssi = svcDataT[offset]
                 offset = offset + 4
-            else 
+            else
                 offset = offset + 2
                 rssi = svcDataT[offset]
                 offset = offset + 2
             end
-
+            
             if tonumber(cellParamFlag) ~= 0 then
                 offset = offset + 3
                 mcc = svcDataT[offset]
                 mnc = svcDataT[offset + 1]
                 lac = svcDataT[offset + 2]
-                ci  = svcDataT[offset + 3]
+                ci = svcDataT[offset + 3]
                 offset = offset + 3
             end
         end
@@ -311,7 +307,6 @@ local function eemUMTSInfoSvc(data)
 end
 -- crsm更新计数
 --local crsmUpdCnt = 0
-
 -- 更新FPLMN的应答处理
 -- @string cmd  ,此应答对应的AT命令
 -- @bool success ,AT命令执行结果，true或者false
@@ -320,20 +315,19 @@ end
 -- @return 无
 --[[
 function crsmResponse(cmd, success, response, intermediate)
-    log.debug("net.crsmResponse", success)
-    if success then
-        sys.restart("net.crsmResponse suc")
-    else
-        crsmUpdCnt = crsmUpdCnt + 1
-        if crsmUpdCnt >= 3 then
-            sys.restart("net.crsmResponse tmout")
-        else
-            ril.request("AT+CRSM=214,28539,0,0,12,\"64f01064f03064f002fffff\"", nil, crsmResponse)
-        end
-    end
+log.debug("net.crsmResponse", success)
+if success then
+sys.restart("net.crsmResponse suc")
+else
+crsmUpdCnt = crsmUpdCnt + 1
+if crsmUpdCnt >= 3 then
+sys.restart("net.crsmResponse tmout")
+else
+ril.request("AT+CRSM=214,28539,0,0,12,\"64f01064f03064f002fffff\"", nil, crsmResponse)
+end
+end
 end
 ]]
-
 --[[
 函数名：UpdNetMode
 功能  ：解析NetMode
@@ -341,38 +335,38 @@ end
 返回值：无
 ]]
 local function UpdNetMode(data)
-    local _, _, SysMainMode,SysMode = string.find(data, "(%d+),(%d+)")
+    local _, _, SysMainMode, SysMode = string.find(data, "(%d+),(%d+)")
     local netMode_cur
-    log.info("net.UpdNetMode",netMode_cur,netMode, SysMainMode,SysMode)
+    log.info("net.UpdNetMode", netMode_cur, netMode, SysMainMode, SysMode)
     if SysMainMode and SysMode then
-        if SysMainMode=="3" then
+        if SysMainMode == "3" then
             netMode_cur = NetMode_GSM
-        elseif SysMainMode=="5" then
+        elseif SysMainMode == "5" then
             netMode_cur = NetMode_WCDMA
-        elseif SysMainMode=="15" then
+        elseif SysMainMode == "15" then
             netMode_cur = NetMode_TD
-        elseif SysMainMode=="17" then
+        elseif SysMainMode == "17" then
             netMode_cur = NetMode_LTE
         else
             netMode_cur = NetMode_noNet
         end
         
-        if SysMode=="3" then
+        if SysMode == "3" then
             netMode_cur = NetMode_EDGE
         end
     end
-  
+    
     if netMode ~= netMode_cur then
         netMode = netMode_cur
-        publish("NET_UPD_NET_MODE",netMode)
-        log.info("net.NET_UPD_NET_MODE",netMode)   
+        publish("NET_UPD_NET_MODE", netMode)
+        log.info("net.NET_UPD_NET_MODE", netMode)
         
-        if netMode == NetMode_LTE then 
-            ril.request("AT+CEREG?")  
-        elseif netMode == NetMode_noNet then 
-            ril.request("AT+CREG?")  
+        if netMode == NetMode_LTE then
+            ril.request("AT+CEREG?")
+        elseif netMode == NetMode_noNet then
+            ril.request("AT+CREG?")
         else
-            ril.request("AT+CGREG?")  
+            ril.request("AT+CGREG?")
         end
     end
 end
@@ -400,10 +394,10 @@ local function neturc(data, prefix)
     elseif prefix == "+EEMGINFONC" then
         eemGsmNCInfoSvc(data)
     --[[elseif prefix == "+CRSM" then
-        local str = string.lower(data)
-        if string.match(str, "64f000") or string.match(str, "64f020") or string.match(str, "64f040") or string.match(str, "64f070") then
-            ril.request("AT+CRSM=214,28539,0,0,12,\"64f01064f03064f002fffff\"", nil, crsmResponse)
-        end]]
+    local str = string.lower(data)
+    if string.match(str, "64f000") or string.match(str, "64f020") or string.match(str, "64f040") or string.match(str, "64f070") then
+    ril.request("AT+CRSM=214,28539,0,0,12,\"64f01064f03064f002fffff\"", nil, crsmResponse)
+    end]]
     elseif prefix == "^MODE" then
         UpdNetMode(data)
     end
@@ -561,14 +555,15 @@ end
 function cengQueryPoll(period)
     -- 不是飞行模式 并且 工作模式为完整模式
     if not flyMode then
-        if nil ~= period then
-            --启动定时器
-            sys.timerStart(cengQueryPoll, period, period)
-        end
         --发送AT+CENG?查询
         ril.request("AT+EEMGINFO?")
     else
         log.warn("net.cengQueryPoll", "flymode:", flyMode)
+    end
+    if nil ~= period then
+        --启动定时器
+        sys.timerStopAll(cengQueryPoll)
+        sys.timerStart(cengQueryPoll, period, period)
     end
     return not flyMode
 end
@@ -581,14 +576,15 @@ end
 function csqQueryPoll(period)
     --不是飞行模式 并且 工作模式为完整模式
     if not flyMode then
-        if nil ~= period then
-            --启动定时器
-            sys.timerStart(csqQueryPoll, period, period)
-        end
         --发送AT+CSQ查询
         ril.request("AT+CSQ")
     else
-        log.info("net.csqQueryPoll", "flymode:", flyMode)
+        log.warn("net.csqQueryPoll", "flymode:", flyMode)
+    end
+    if nil ~= period then
+        --启动定时器
+        sys.timerStopAll(csqQueryPoll)
+        sys.timerStart(csqQueryPoll, period, period)
     end
     return not flyMode
 end
@@ -601,22 +597,21 @@ end
 -- @usage net.startQueryAll(60000) -- 6分钟查询1次信号强度和基站信息
 -- @usage net.startQueryAll(60000,600000) -- 1分钟查询1次信号强度，10分钟查询1次基站信息
 function startQueryAll(...)
-    if not flyMode then
-        csqQueryPoll(arg[1])
-        cengQueryPoll(arg[2])
-        return true
-    else
+    csqQueryPoll(arg[1])
+    cengQueryPoll(arg[2])
+    if flyMode then
         log.info("sim.startQuerAll", "flyMode:", flyMode)
         return false
     end
+    return true
 end
 
 --- 停止查询信号强度和基站信息
 -- @return 无
 -- @usage net.stopQueryAll()
 function stopQueryAll()
-    sys.timerStop(csqQueryPoll)
-    sys.timerStop(cengQueryPoll)
+    sys.timerStopAll(csqQueryPoll)
+    sys.timerStopAll(cengQueryPoll)
 end
 
 -- 处理SIM卡状态消息，SIM卡工作不正常时更新网络状态为未注册

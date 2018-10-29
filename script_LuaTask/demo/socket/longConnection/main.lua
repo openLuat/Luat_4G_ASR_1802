@@ -21,14 +21,15 @@ require "sys"
 require "net"
 --每1分钟查询一次GSM信号强度
 --每1分钟查询一次基站信息
-net.startQueryAll(60000, 60000)
+net.startQueryAll(8000, 60000)
 
 --加载控制台调试功能模块（此处代码配置的是uart2，波特率115200）
 --此功能模块不是必须的，根据项目需求决定是否加载
 --使用时注意：控制台使用的uart不要和其他功能使用的uart冲突
 --使用说明参考demo/console下的《console功能使用说明.docx》
---require "console"
---console.setup(2, 115200)
+require "misc"
+require "console"
+console.setup(2, 115200)
 
 --加载网络指示灯和LTE指示灯功能模块
 --根据自己的项目需求和硬件配置决定：1、是否加载此功能模块；2、配置指示灯引脚

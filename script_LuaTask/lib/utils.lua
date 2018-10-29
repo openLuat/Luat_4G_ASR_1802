@@ -15,9 +15,9 @@ module(..., package.seeall)
 -- string.toHex("\1\2\3") -> "010203" 3
 -- string.toHex("123abc") -> "313233616263" 6
 -- string.toHex("123abc"," ") -> "31 32 33 61 62 63 " 6
-function string.toHex(str,separator)
+function string.toHex(str, separator)
     return str:gsub('.', function(c)
-        return string.format("%02X"..(separator or ""), string.byte(c))
+        return string.format("%02X" .. (separator or ""), string.byte(c))
     end)
 end
 --- 将HEX字符串转成Lua字符串，如"313233616263"转为"123abc", 函数里加入了过滤分隔符，可以过滤掉大部分分隔符（可参见正则表达式中\s和\p的范围）。
@@ -34,6 +34,18 @@ function string.fromHex(hex)
         return string.char(tonumber(c, 16))
     end)
 end
+
+-- 返回字符串tonumber的转义字符串(用来支持超过31位整数的转换)
+-- @string str 输入字符串
+-- @return str 转换后的lua 二进制字符串
+-- @return len 转换了多少个字符
+-- @usage
+-- string.toValue("123456") -> "\1\2\3\4\5\6"  6
+-- string.toValue("123abc") -> "\1\2\3\a\b\c"  6
+function string.toValue(str)
+    return string.fromHex(str:gsub("%x", "0%1"))
+end
+
 --- 返回utf8编码字符串的长度
 -- @string str,utf8编码的字符串,支持中文
 -- @return number,返回字符串长度
@@ -88,9 +100,13 @@ end
 -- @return 分割后的字符串列表
 -- @usage "123,456,789":split(',') -> {'123','456','789'}
 function string.split(str, delimiter)
-    local strlist = {}
-    for substr in str:gmatch(string.format("([^%s]+)", delimiter)) do
-        table.insert(strlist, substr)
+    local strlist, tmp = {}, string.byte(delimiter)
+    if delimiter == "" then
+        for i = 1, #str do strlist[i] = str:sub(i, i) end
+    else
+        for substr in string.gmatch(str .. delimiter, "(.-)" .. (((tmp > 96 and tmp < 123) or (tmp > 64 and tmp < 91) or (tmp > 47 and tmp < 58)) and delimiter or "%" .. delimiter)) do
+            table.insert(strlist, substr)
+        end
     end
     return strlist
 end

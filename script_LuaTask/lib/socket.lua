@@ -4,11 +4,11 @@
 -- @license MIT
 -- @copyright openLuat
 -- @release 2017.9.25
-require"link"
-require"utils"
+require "link"
+require "utils"
 module(..., package.seeall)
 
-local valid = { "0", "1", "2", "3", "4", "5", "6", "7" }
+local valid = {"0", "1", "2", "3", "4", "5", "6", "7"}
 local sockets = {}
 -- 单次发送数据最大值
 local SENDSIZE = 1460
@@ -28,24 +28,24 @@ local function isSocketActive()
 end
 
 local function socketStatusNtfy()
-    sys.publish("SOCKET_ACTIVE",isSocketActive())
+    sys.publish("SOCKET_ACTIVE", isSocketActive())
 end
 
 local function errorInd(error)
     for _, c in pairs(sockets) do -- IP状态出错时，通知所有已连接的socket
         --if c.connected then
-            if error == 'CLOSED' then c.connected = false socketStatusNtfy() end
-            c.error = error
-            if c.co and coroutine.status(c.co)=="suspended" then coroutine.resume(c.co, false) end
-        --end
+        if error == 'CLOSED' then c.connected = false socketStatusNtfy() end
+        c.error = error
+        if c.co and coroutine.status(c.co) == "suspended" then coroutine.resume(c.co, false) end
+    --end
     end
 end
 
-sys.subscribe("IP_ERROR_IND", function() errorInd('IP_ERROR_IND') end)
-sys.subscribe('IP_SHUT_IND', function() errorInd('CLOSED') end)
+sys.subscribe("IP_ERROR_IND", function()errorInd('IP_ERROR_IND') end)
+sys.subscribe('IP_SHUT_IND', function()errorInd('CLOSED') end)
 
 -- 创建socket函数
-local mt = { __index = {} }
+local mt = {__index = {}}
 local function socket(protocol, cert)
     local ssl = protocol:match("SSL")
     local id = table.remove(ssl and validSsl or valid)
@@ -70,9 +70,9 @@ local function socket(protocol, cert)
         wait = "",
         core_id = nil,
     }
-
+    
     sockets[id] = o
-
+    
     return setmetatable(o, mt)
 end
 
@@ -86,14 +86,14 @@ end
 --     clientPassword = "123456", --客户端证书文件密码[可选]
 -- }
 -- @return client，创建成功返回socket客户端对象；创建失败返回nil
--- @usage 
+-- @usage
 -- c = socket.tcp()
 -- c = socket.tcp(true)
 -- c = socket.tcp(true, {caCert="ca.crt"})
 -- c = socket.tcp(true, {caCert="ca.crt", clientCert="client.crt", clientKey="client.key"})
 -- c = socket.tcp(true, {caCert="ca.crt", clientCert="client.crt", clientKey="client.key", clientPassword="123456"})
-function tcp(ssl,cert)
-    return socket("TCP"..(ssl==true and "SSL" or ""), (ssl==true) and cert or nil)
+function tcp(ssl, cert)
+    return socket("TCP" .. (ssl == true and "SSL" or ""), (ssl == true) and cert or nil)
 end
 
 --- 创建基于UDP的socket对象
@@ -110,34 +110,34 @@ end
 -- @usage  c = socket.tcp(); c:connect();
 function mt.__index:connect(address, port)
     assert(self.co == coroutine.running(), "socket:connect: coroutine mismatch")
-
+    
     if not link.isReady() then
         log.info("socket.connect: ip not ready")
         return false
     end
-
+    
     log.info("socket.connect", self.protocol, address, port, self.cert)
     local core_id
-    if self.protocol == 'TCP' then        
+    if self.protocol == 'TCP' then
         core_id = socketcore.sock_conn(0, address, port)
     elseif self.protocol == 'TCPSSL' then
-        local cert = {hostName=address}
+        local cert = {hostName = address}
         if self.cert then
             if self.cert.caCert then
-                if self.cert.caCert:sub(1,1)~="/" then self.cert.caCert="/lua/"..self.cert.caCert end
+                if self.cert.caCert:sub(1, 1) ~= "/" then self.cert.caCert = "/lua/" .. self.cert.caCert end
                 cert.caCert = io.readFile(self.cert.caCert)
             end
             if self.cert.clientCert then
-                if self.cert.clientCert:sub(1,1)~="/" then self.cert.clientCert="/lua/"..self.cert.clientCert end
+                if self.cert.clientCert:sub(1, 1) ~= "/" then self.cert.clientCert = "/lua/" .. self.cert.clientCert end
                 cert.clientCert = io.readFile(self.cert.clientCert)
             end
             if self.cert.clientKey then
-                if self.cert.clientKey:sub(1,1)~="/" then self.cert.clientKey="/lua/"..self.cert.clientKey end
+                if self.cert.clientKey:sub(1, 1) ~= "/" then self.cert.clientKey = "/lua/" .. self.cert.clientKey end
                 cert.clientKey = io.readFile(self.cert.clientKey)
             end
         end
         core_id = socketcore.sock_conn(2, address, port, cert)
-    else 
+    else
         core_id = socketcore.sock_conn(1, address, port)
     end
     if not core_id then
@@ -163,7 +163,7 @@ function mt.__index:send(data)
         log.warn('socket.client:send', 'error', self.error)
         return false
     end
-    if self.id==nil then
+    if self.id == nil then
         log.warn('socket.client:send', 'closed')
         return false
     end
@@ -172,7 +172,7 @@ function mt.__index:send(data)
         -- 按最大MTU单元对data分包
         local stepData = string.sub(data, i, i + SENDSIZE - 1)
         --发送AT命令执行数据发送
-        log.info("socket.send", "total "..stepData:len().." bytes", "first 300 bytes", stepData:sub(1,300))
+        log.info("socket.send", "total " .. stepData:len() .. " bytes", "first 300 bytes", stepData:sub(1, 300))
         socketcore.sock_send(self.core_id, stepData)
         self.wait = "SOCKET_SEND"
         if not coroutine.yield() then return false end
@@ -184,19 +184,28 @@ end
 -- @return result true - 成功，false - 失败
 -- @return data 如果成功的话，返回接收到的数据，超时时返回错误为"timeout"
 -- @usage  c = socket.tcp(); c:connect(); result, data = c:recv()
-function mt.__index:recv(timeout)
+function mt.__index:recv(timeout, msg)
     assert(self.co == coroutine.running(), "socket:recv: coroutine mismatch")
     if self.error then
         log.warn('socket.client:recv', 'error', self.error)
         return false
     end
-
+    
     if #self.input == 0 then
         self.wait = "+RECEIVE"
-        if timeout and timeout~=0 then
-            local r, s = sys.wait(timeout)
-            if r == nil then
-                return false, "timeout"
+        if timeout and timeout > 0 then
+            --     local r, s = sys.wait(timeout)
+            --     if r == nil then
+            --         return false, "timeout"
+            --     else
+            --         return r, s
+            --     end
+            local r, s = sys.waitUntilX(msg or tostring(self.co), timeout)
+            -- log.info("socket.recv msg:", r, s)
+            if not r then
+                return false, timeout
+            elseif r and r == msg then
+                return false, r, s
             else
                 return r, s
             end
@@ -204,7 +213,7 @@ function mt.__index:recv(timeout)
             return coroutine.yield()
         end
     end
-
+    
     if self.protocol == "UDP" then
         return true, table.remove(self.input)
     else
@@ -227,7 +236,7 @@ function mt.__index:close()
         coroutine.yield()
         socketStatusNtfy()
     end
-    if self.id~=nil then
+    if self.id ~= nil then
         table.insert(valid, 1, self.id)
         sockets[self.id] = nil
         self.id = nil
@@ -248,7 +257,7 @@ local function on_response(msg)
         log.warn('response on nil socket', msg.socket_index, msg.id)
         return
     end
-
+    
     local t = {
         [rtos.MSG_SOCK_CLOSE_CNF] = 'SOCKET_CLOSE',
         [rtos.MSG_SOCK_SEND_CNF] = 'SOCKET_SEND',
@@ -259,7 +268,7 @@ local function on_response(msg)
         log.warn('response on invalid wait', item.id, item.wait, t[msg.id], msg.socket_index)
         return
     end
-
+    
     coroutine.resume(item.co, msg.result == 0)
 end
 
@@ -283,24 +292,23 @@ rtos.on(rtos.MSG_SOCK_RECV_IND, function(msg)
         log.warn('close ind on nil socket', msg.socket_index, msg.id)
         return
     end
-
+    
     local s = socketcore.sock_recv(msg.socket_index, msg.recv_len)
     
     --[[if s and s:len()>0 then
-        log.info("socket recv","total "..s:len().." bytes","first 300 bytes",s:sub(1,300))
+    log.info("socket recv","total "..s:len().." bytes","first 300 bytes",s:sub(1,300))
     end]]
-
     if item.wait == "+RECEIVE" then
         coroutine.resume(item.co, true, s)
     else -- 数据进缓冲区，缓冲区溢出采用覆盖模式
-        if #item.input > INDEX_MAX then log.error("socket recv","out of stack") sockets[id].input = {} end
+        if #item.input > INDEX_MAX then log.error("socket recv", "out of stack")sockets[id].input = {} end
         table.insert(item.input, s)
     end
 end)
 
 function printStatus()
     log.info('socket.printStatus', 'valid id', table.concat(valid))
-
+    
     for _, client in pairs(sockets) do
         for k, v in pairs(client) do
             log.info('socket.printStatus', 'client', client.id, k, v)

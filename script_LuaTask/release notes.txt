@@ -6,8 +6,8 @@
 		【新功能重要性】：一般
 		【新功能影响模块】：Air720
 		【问题说明】：查询代码有一句固定了1分钟查询,去掉这段代码，然后每次状态变更都查询。
-	(2)sys.lua：新增waitUntilX(id,ms) 接口
-		【新增功能特性】：sys.waitUntilX(id,ms)返回的第一个参数是id自身。
+	(2)sys.lua：新增waitUntilExt(id,ms) 接口
+		【新增功能特性】：sys.waitUntilExt(id,ms)返回的第一个参数是id自身。
 		【问题影响模块】：Air720
 		【问题出现概率】：此接口是增加新功能设计的，为了兼容以前发布的代码所以新增的接口，作用和sys.waitUntil(id,ms)相同，返回值不同。
 	(3)socket.lua：支持发布消息和带参数的发布消息	

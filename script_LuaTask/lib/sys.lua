@@ -91,8 +91,8 @@ end
 -- @number ms 等待超时时间，单位ms，最大等待126322567毫秒
 -- @return message 接收到消息返回message，超时返回false
 -- @return data 接收到消息返回消息参数
--- @usage result, data = sys.waitUntil("SIM_IND", 120000)
-function waitUntilX(id, ms)
+-- @usage result, data = sys.waitUntilExt("SIM_IND", 120000)
+function waitUntilExt(id, ms)
     subscribe(id, coroutine.running())
     local message = ms and {wait(ms)} or {coroutine.yield()}
     unsubscribe(id, coroutine.running())

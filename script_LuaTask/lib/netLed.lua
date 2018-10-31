@@ -35,13 +35,13 @@ local ON,OFF = 1,2
 --各种工作状态下配置的点亮、熄灭时长（单位毫秒）
 local ledBlinkTime =
 {
-    NULL = {0,0xFFFF},  --常灭
-    FLYMODE = {0,0xFFFF},  --常灭
-    SIMERR = {300,5700},  --亮300毫秒，灭5700毫秒
-    IDLE = {300,3700},  --亮300毫秒，灭3700毫秒
-    GSM = {300,1700},  --亮300毫秒，灭1700毫秒
-    GPRS = {300,700},  --亮300毫秒，灭700毫秒
-    SCK = {100,100},  --亮100毫秒，灭100毫秒
+	NULL = {0,0xFFFF},  --常灭
+	FLYMODE = {0,0xFFFF},  --常灭
+	SIMERR = {300,5700},  --亮300毫秒，灭5700毫秒
+	IDLE = {300,3700},  --亮300毫秒，灭3700毫秒
+	GSM = {300,1700},  --亮300毫秒，灭1700毫秒
+	GPRS = {300,700},  --亮300毫秒，灭700毫秒
+	SCK = {100,100},  --亮100毫秒，灭100毫秒
 }
 
 --网络指示灯开关，true为打开，false或者nil为关闭
@@ -60,26 +60,26 @@ local LTEPIN = pio.P2_1
 -- 返回值：无
 --]]
 local function updateState()
-    --log.info("netLed.updateState",ledSwitch,ledState,flyMode,simError,gsmRegistered,gprsAttached,socketConnected)
-    if ledSwitch then
-        local newState = "IDLE"
-        if flyMode then
-            newState = "FLYMODE"
-        elseif simError then
-            newState = "SIMERR"
-        elseif socketConnected then
-            newState = "SCK"
-        elseif gprsAttached then
-            newState = "GPRS"
-        elseif gsmRegistered then
-            newState = "GSM"	
-        end
-        --指示灯状态发生变化
-        if newState~=ledState then
-            ledState = newState
-            sys.publish("NET_LED_UPDATE")
-        end
-    end
+	--log.info("netLed.updateState",ledSwitch,ledState,flyMode,simError,gsmRegistered,gprsAttached,socketConnected)
+	if ledSwitch then
+		local newState = "IDLE"
+		if flyMode then
+			newState = "FLYMODE"
+		elseif simError then
+			newState = "SIMERR"
+		elseif socketConnected then
+			newState = "SCK"
+		elseif gprsAttached then
+			newState = "GPRS"
+		elseif gsmRegistered then
+			newState = "GSM"	
+		end
+		--指示灯状态发生变化
+		if newState~=ledState then
+			ledState = newState
+			sys.publish("NET_LED_UPDATE")
+		end
+	end
 end
 
 --[[ 
@@ -88,12 +88,12 @@ end
 -- 返回值：无
 --]]
 local function updateState_LTE()
-    netMode=net.getnetmode()
-    if lteSwitch then
-	    if netMode == net.NetMode_LTE then
-		    sys.publish("LTE_LED_UPDATE",true)
-	    else
-		    sys.publish("LTE_LED_UPDATE",false)
+	netMode=net.getNetMode()
+	if lteSwitch then
+		if netMode == net.NetMode_LTE then
+			sys.publish("LTE_LED_UPDATE",true)
+		else
+			sys.publish("LTE_LED_UPDATE",false)
 		end
 	end	
 end
@@ -101,49 +101,49 @@ end
 --[[
 -- 模块功能：网络指示灯模块的运行任务
 -- 参数：
-       ledPinSetFunc：指示灯GPIO的设置函数
+	   ledPinSetFunc：指示灯GPIO的设置函数
 -- 返回值：无
 --]]
 local function taskLed(ledPinSetFunc)
-    while true do
-        --log.info("netLed.taskLed",ledPinSetFunc,ledSwitch,ledState)
-        if ledSwitch then
-            local onTime,offTime = ledBlinkTime[ledState][ON],ledBlinkTime[ledState][OFF]
-            if onTime>0 then
-                ledPinSetFunc(1)
-                if not sys.waitUntil("NET_LED_UPDATE", onTime) then
-                    if offTime>0 then
-                        ledPinSetFunc(0)
-                        sys.waitUntil("NET_LED_UPDATE", offTime)
-                    end
-                end
-            else if offTime>0 then
-                    ledPinSetFunc(0)
-                    sys.waitUntil("NET_LED_UPDATE", offTime)
-                end
-            end            
-        else
-            ledPinSetFunc(0)
-            break
-        end
-    end
+	while true do
+		--log.info("netLed.taskLed",ledPinSetFunc,ledSwitch,ledState)
+		if ledSwitch then
+			local onTime,offTime = ledBlinkTime[ledState][ON],ledBlinkTime[ledState][OFF]
+			if onTime>0 then
+				ledPinSetFunc(1)
+				if not sys.waitUntil("NET_LED_UPDATE", onTime) then
+					if offTime>0 then
+						ledPinSetFunc(0)
+						sys.waitUntil("NET_LED_UPDATE", offTime)
+					end
+				end
+			else if offTime>0 then
+					ledPinSetFunc(0)
+					sys.waitUntil("NET_LED_UPDATE", offTime)
+				end
+			end            
+		else
+			ledPinSetFunc(0)
+			break
+		end
+	end
 end
 
 --[[
 -- 模块功能：LTE指示灯模块的运行任务
 -- 参数：
-       ledPinSetFunc：指示灯GPIO的设置函数
+	   ledPinSetFunc：指示灯GPIO的设置函数
 -- 返回值：无
 --]]
 local function taskLte(ledPinSetFunc)
-    local arg
-    while true do
+	local arg
+	while true do
 	local _,arg = sys.waitUntil("LTE_LED_UPDATE")
-	    if lteSwitch then
-		    if arg == true then
-		        ledPinSetFunc(1)
-		    else 
-		        ledPinSetFunc(0)
+		if lteSwitch then
+			if arg == true then
+				ledPinSetFunc(1)
+			else 
+				ledPinSetFunc(0)
 			end
 		end
 	end
@@ -157,18 +157,18 @@ end
 -- @usage setup(true,pio.P2_0,pio.P2_1)表示打开网络指示灯和LTE指示灯功能，GPIO64控制网络指示灯，GPIO65控制LTE指示灯
 -- @usage setup(false)表示关闭网络指示灯和LTE指示灯功能
 function setup(flag,ledPin,ltePin)
-    --log.info("netLed.setup",flag,pin,ledSwitch)
-    local oldSwitch = ledSwitch
-    if flag~=ledSwitch then
-        ledSwitch = flag
-        sys.publish("NET_LED_UPDATE")
-    end
-    if flag and not oldSwitch then
-        sys.taskInit(taskLed, pins.setup(ledPin or LEDPIN, 0))
-    end
-    if flag~=lteSwitch then
+	--log.info("netLed.setup",flag,pin,ledSwitch)
+	local oldSwitch = ledSwitch
+	if flag~=ledSwitch then
+		ledSwitch = flag
+		sys.publish("NET_LED_UPDATE")
+	end
+	if flag and not oldSwitch then
+		sys.taskInit(taskLed, pins.setup(ledPin or LEDPIN, 0))
+	end
+	if flag~=lteSwitch then
 	lteSwitch = flag	
-    end  
+	end  
 	if flag then
 		sys.taskInit(taskLte, pins.setup(ltePin or LTEPIN, 0))  
 	end	
@@ -183,18 +183,18 @@ end
 -- @usage updateBlinkTime("SCK",0xFFFF,0)表示有socket连接上后台的工作状态下，指示灯闪烁规律为：常亮
 -- @usage updateBlinkTime("SIMERR",0,0xFFFF)表示SIM卡异常状态下，指示灯闪烁规律为：常灭
 function updateBlinkTime(state,on,off)
-    if not ledBlinkTime[state] then log.error("netLed.updateBlinkTime") return end    
-    local updated
-    if on and ledBlinkTime[state][ON]~=on then
-        ledBlinkTime[state][ON] = on
-        updated = true
-    end
-    if off and ledBlinkTime[state][OFF]~=off then
-        ledBlinkTime[state][OFF] = off
-        updated = true
-    end
-    --log.info("netLed.updateBlinkTime",state,on,off,updated)
-    if updated then sys.publish("NET_LED_UPDATE") end
+	if not ledBlinkTime[state] then log.error("netLed.updateBlinkTime") return end    
+	local updated
+	if on and ledBlinkTime[state][ON]~=on then
+		ledBlinkTime[state][ON] = on
+		updated = true
+	end
+	if off and ledBlinkTime[state][OFF]~=off then
+		ledBlinkTime[state][OFF] = off
+		updated = true
+	end
+	--log.info("netLed.updateBlinkTime",state,on,off,updated)
+	if updated then sys.publish("NET_LED_UPDATE") end
 end
 
 sys.subscribe("FLYMODE", function(mode) if flyMode~=mode then flyMode=mode updateState() end end)

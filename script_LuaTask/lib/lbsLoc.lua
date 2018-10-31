@@ -12,98 +12,98 @@ require"misc"
 module(..., package.seeall)
 
 local function enCellInfo(s)
-    local ret,t,mcc,mnc,lac,ci,rssi,k,v,m,n,cntrssi = "",{}
-    log.info("lbsLoc.enCellInfo",s)
-    for mcc,mnc,lac,ci,rssi in string.gmatch(s,"(%d+)%.(%d+)%.(%d+)%.(%d+)%.(%d+);") do
-        mcc,mnc,lac,ci,rssi = tonumber(mcc),tonumber(mnc),tonumber(lac),tonumber(ci),(tonumber(rssi) > 31) and 31 or tonumber(rssi)
-        local handle = nil
-        for k,v in pairs(t) do
-            if v.lac == lac and v.mcc == mcc and v.mnc == mnc then
-                if #v.rssici < 8 then
-                    table.insert(v.rssici,{rssi=rssi,ci=ci})
-                end
-                handle = true
-                break
-            end
-        end
-        if not handle then
-            table.insert(t,{mcc=mcc,mnc=mnc,lac=lac,rssici={{rssi=rssi,ci=ci}}})
-        end
-    end
-    for k,v in pairs(t) do
-        ret = ret .. pack.pack(">HHb",v.lac,v.mcc,v.mnc)
-        for m,n in pairs(v.rssici) do
-            cntrssi = bit.bor(bit.lshift(((m == 1) and (#v.rssici-1) or 0),5),n.rssi)
-            ret = ret .. pack.pack(">bH",cntrssi,n.ci)
-        end
-    end
+	local ret,t,mcc,mnc,lac,ci,rssi,k,v,m,n,cntrssi = "",{}
+	log.info("lbsLoc.enCellInfo",s)
+	for mcc,mnc,lac,ci,rssi in string.gmatch(s,"(%d+)%.(%d+)%.(%d+)%.(%d+)%.(%d+);") do
+		mcc,mnc,lac,ci,rssi = tonumber(mcc),tonumber(mnc),tonumber(lac),tonumber(ci),(tonumber(rssi) > 31) and 31 or tonumber(rssi)
+		local handle = nil
+		for k,v in pairs(t) do
+			if v.lac == lac and v.mcc == mcc and v.mnc == mnc then
+				if #v.rssici < 8 then
+					table.insert(v.rssici,{rssi=rssi,ci=ci})
+				end
+				handle = true
+				break
+			end
+		end
+		if not handle then
+			table.insert(t,{mcc=mcc,mnc=mnc,lac=lac,rssici={{rssi=rssi,ci=ci}}})
+		end
+	end
+	for k,v in pairs(t) do
+		ret = ret .. pack.pack(">HHb",v.lac,v.mcc,v.mnc)
+		for m,n in pairs(v.rssici) do
+			cntrssi = bit.bor(bit.lshift(((m == 1) and (#v.rssici-1) or 0),5),n.rssi)
+			ret = ret .. pack.pack(">bi",cntrssi,n.ci)
+		end
+	end
 
-    return string.char(#t)..ret
+	return string.char(#t)..ret
 end
 
 local function trans(str)
-    local s = str
-    if str:len()<10 then
-        s = str..string.rep("0",10-str:len())
-    end
+	local s = str
+	if str:len()<10 then
+		s = str..string.rep("0",10-str:len())
+	end
 	
-    return s:sub(1,3).."."..s:sub(4,10)
+	return s:sub(1,3).."."..s:sub(4,10)
 end
 
 local function taskClient(cbFnc,reqAddr,timeout,productKey,host,port,reqTime)
-    while not socket.isReady() do
-        if not sys.waitUntil("IP_READY_IND",timeout) then return cbFnc(1) end
-    end
-    
-    local retryCnt,sck = 0
-    local reqStr = pack.pack("bAbAAA",productKey:len(),productKey,(reqAddr and 2 or 0)+(reqTime and 4 or 0),"",common.numToBcdNum(misc.getImei()),enCellInfo(net.getCellInfoExt()))
-    log.info("reqStr",reqStr:toHex())
-    while true do
-        sck = socket.udp()
-        if sck:connect(host,port) then
-            while true do
-                if sck:send(reqStr) then
-                    local result,data = sck:recv(5000)
-                    if result then                        
-                        sck:close()
-                        log.info("lbcLoc receive",data:toHex())
-                        if data:len()>=11 and data:byte(1)==0 then
-                            cbFnc(0,
-                                trans(common.bcdNumToNum(data:sub(2,6))),
-                                trans(common.bcdNumToNum(data:sub(7,11))),
-                                reqAddr and data:sub(13,12+data:byte(12)) or nil,
-                                data:sub(reqAddr and (13+data:byte(12)) or 12,-1))
-                        else
-                            log.warn("lbsLoc.query","根据基站查询经纬度失败")
-                            if data:byte(1)==2 then
-                                log.warn("lbsLoc.query","main.lua中的PRODUCT_KEY和此设备在iot.openluat.com中所属项目的ProductKey必须一致，请去检查")
-                            else
-                                log.warn("lbsLoc.query","基站数据库查询不到所有小区的位置信息")
-                                log.warn("lbsLoc.query","在trace中向上搜索encellinfo，然后在电脑浏览器中打开http://bs.openluat.com/，手动查找encellinfo后的所有小区位置")
-                                log.warn("lbsLoc.query","如果手动可以查到位置，则服务器存在BUG，直接向技术人员反映问题")
-                                log.warn("lbsLoc.query","如果手动无法查到位置，则基站数据库还没有收录当前设备的小区位置信息，向技术人员反馈，我们会尽快收录")
-                            end
-                            cbFnc(5)
-                        end                        
-                        return
-                    else
-                        sck:close()
-                        retryCnt = retryCnt+1
-                        if retryCnt>=3 then return cbFnc(4) end
-                    end
-                else
-                    sck:close()
-                    retryCnt = retryCnt+1
-                    if retryCnt>=3 then return cbFnc(3) end
-                    break
-                end
-            end
-        else
-            sck:close()
-            retryCnt = retryCnt+1
-            if retryCnt>=3 then return cbFnc(2) end
-        end
-    end    
+	while not socket.isReady() do
+		if not sys.waitUntil("IP_READY_IND",timeout) then return cbFnc(1) end
+	end
+	
+	local retryCnt,sck = 0
+	local reqStr = pack.pack("bAbAAA",productKey:len(),productKey,(reqAddr and 2 or 0)+(reqTime and 4 or 0)+8,"",common.numToBcdNum(misc.getImei()),enCellInfo(net.getCellInfoExt()))
+	log.info("reqStr",reqStr:toHex())
+	while true do
+		sck = socket.udp()
+		if sck:connect(host,port) then
+			while true do
+				if sck:send(reqStr) then
+					local result,data = sck:recv(5000)
+					if result then                        
+						sck:close()
+						log.info("lbcLoc receive",data:toHex())
+						if data:len()>=11 and data:byte(1)==0 then
+							cbFnc(0,
+								trans(common.bcdNumToNum(data:sub(2,6))),
+								trans(common.bcdNumToNum(data:sub(7,11))),
+								reqAddr and data:sub(13,12+data:byte(12)) or nil,
+								data:sub(reqAddr and (13+data:byte(12)) or 12,-1))
+						else
+							log.warn("lbsLoc.query","根据基站查询经纬度失败")
+							if data:byte(1)==2 then
+								log.warn("lbsLoc.query","main.lua中的PRODUCT_KEY和此设备在iot.openluat.com中所属项目的ProductKey必须一致，请去检查")
+							else
+								log.warn("lbsLoc.query","基站数据库查询不到所有小区的位置信息")
+								log.warn("lbsLoc.query","在trace中向上搜索encellinfo，然后在电脑浏览器中打开http://bs.openluat.com/，手动查找encellinfo后的所有小区位置")
+								log.warn("lbsLoc.query","如果手动可以查到位置，则服务器存在BUG，直接向技术人员反映问题")
+								log.warn("lbsLoc.query","如果手动无法查到位置，则基站数据库还没有收录当前设备的小区位置信息，向技术人员反馈，我们会尽快收录")
+							end
+							cbFnc(5)
+						end                        
+						return
+					else
+						sck:close()
+						retryCnt = retryCnt+1
+						if retryCnt>=3 then return cbFnc(4) end
+					end
+				else
+					sck:close()
+					retryCnt = retryCnt+1
+					if retryCnt>=3 then return cbFnc(3) end
+					break
+				end
+			end
+		else
+			sck:close()
+			retryCnt = retryCnt+1
+			if retryCnt>=3 then return cbFnc(2) end
+		end
+	end    
 end
 
 --- 发送根据基站查询经纬度请求（仅支持中国区域的位置查询）
@@ -129,7 +129,7 @@ end
 -- @usage lbsLoc.request(cbFnc,true)
 -- @usage lbsLoc.request(cbFnc,nil,20000)
 function request(cbFnc,reqAddr,timeout,productKey,host,port,reqTime)
-    assert(_G.PRODUCT_KEY or productKey,"undefine PRODUCT_KEY in main.lua")    
-    sys.taskInit(taskClient,cbFnc,reqAddr,timeout or 20000,productKey or _G.PRODUCT_KEY,host or "bs.openluat.com",port or "12411",reqTime)
+	assert(_G.PRODUCT_KEY or productKey,"undefine PRODUCT_KEY in main.lua")    
+	sys.taskInit(taskClient,cbFnc,reqAddr,timeout or 20000,productKey or _G.PRODUCT_KEY,host or "bs.openluat.com",port or "12411",reqTime)
 end
 

@@ -207,7 +207,7 @@ function mt.__index:recv(timeout, msg)
             local r, s = sys.waitUntilExt(msg or tostring(self.co), timeout)
             -- log.info("socket.recv msg:", r, s)
             if not r then
-                return false, timeout
+                return false, "timeout"
             elseif r and r == msg then
                 return false, r, s
             else

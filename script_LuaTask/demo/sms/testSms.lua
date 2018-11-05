@@ -5,9 +5,9 @@
 -- @copyright openLuat
 -- @release 2018.03.27
 
+require"sms"
 module(...,package.seeall)
 
-require"sms"
 
 -----------------------------------------短信接收功能测试[开始]-----------------------------------------
 local function procnewsms(num,data,datetime)

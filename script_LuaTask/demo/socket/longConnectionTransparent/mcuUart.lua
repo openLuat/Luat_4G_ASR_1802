@@ -12,7 +12,7 @@ module(...,package.seeall)
 
 require"pm"
 
-local uartID = 1
+local uartID = 2
 
 local function taskRead()
     local cacheData = ""

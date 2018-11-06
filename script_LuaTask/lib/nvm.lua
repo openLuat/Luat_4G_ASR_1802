@@ -9,8 +9,6 @@ require"log"
 
 module(...,package.seeall)
 
-package.path = "/?.lua;".."/?.luae;"..package.path
-
 --默认参数配置存储在configname文件中
 --实时参数配置存储在paraname文件中
 --para：实时参数表
@@ -73,6 +71,14 @@ function upd(overide)
     end
 end
 
+local function safePcall(file)
+    local oldPath = package.path
+    package.path = "/?.lua;".."/?.luae;"..package.path    
+    local result,para = pcall(require,file)
+    package.path = oldPath
+    return result,para
+end
+
 --[[
 函数名：load
 功能  ：初始化参数
@@ -97,7 +103,7 @@ local function load()
 	
     local fResult,fBakResult
     if fExist then
-        fResult,para = pcall(require,string.match(paraname,"/(.+)%.lua"))
+        fResult,para = safePcall(paraname:match("/(.+)%.lua"))
     end
 	
     print("load fResult",fResult)
@@ -109,7 +115,7 @@ local function load()
     end
 	
     if fBakExist then
-        fBakResult,para = pcall(require,string.match(paranamebak,"/(.+)%.lua"))
+        fBakResult,para = safePcall(paranamebak:match("/(.+)%.lua"))
     end
 	
     print("load fBakResult",fBakResult)
@@ -161,7 +167,7 @@ end
 -- @usage nvm.init("config.lua")
 function init(defaultCfgFile)
     local f
-    f,libdftconfig = pcall(require,string.match(defaultCfgFile,"(.+)%.lua"))
+    f,libdftconfig = safePcall(defaultCfgFile:match("(.+)%.lua"))
     configname,econfigname = "/lua/"..defaultCfgFile,"/lua/"..defaultCfgFile.."e"
     --初始化配置文件，从文件中把参数读取到内存中
     load()

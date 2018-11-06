@@ -86,12 +86,12 @@ local function pbrsp(cmd,success,response,intermediate)
 		local index = string.match(cmd,"AT%+CPBR%s*=%s*(%d+)")
 		local num,name = string.match(intermediate,"+CPBR:%s*%d+,\"([#%*%+%d]*)\",%d+,\"(%w*)\"")
 		num,name = num or "",name or ""
-		sys.subscribe("PB_READ_CNF",success,index,num,name)
+		sys.publish("PB_READ_CNF",success,index,num,name)
 		local cb = readcb
 		readcb = nil
 		if cb then cb(success,name,num) return end
 	elseif prefix == "+CPBW" then
-		sys.subscribe("PB_WRITE_CNF",success)
+		sys.publish("PB_WRITE_CNF",success)
 		local cb = writecb
 		writecb = nil
 		if cb then cb(success) return end
@@ -101,7 +101,7 @@ local function pbrsp(cmd,success,response,intermediate)
 	elseif prefix == "+CPBS?" then
 		local storage,used,total = string.match(intermediate,"+CPBS:%s*\"(%u+)\",(%d+),(%d+)")
 		used,total = tonumber(used),tonumber(total)
-		sys.subscribe("CPBS_READ_CNF",success,storage,used,total)
+		sys.publish("CPBS_READ_CNF",success,storage,used,total)
 	elseif prefix == "+CPBS" then
 		local cb = storagecb
 		storagecb = nil

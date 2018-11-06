@@ -13,6 +13,15 @@ module(..., package.seeall)
 local sn, imei, calib, ver, muid
 local setSnCbFnc,setImeiCbFnc,setClkCbFnc
 
+local function timeReport()
+    sys.publish("TIME_CLK_IND")
+    sys.timerStart(setTimeReport,2000)
+end
+
+function setTimeReport()
+    sys.timerStart(timeReport,(os.time()%60==0) and 50 or (60-os.time()%60)*1000)
+end
+
 --[[
 函数名：rsp
 功能  ：本功能模块内“通过虚拟串口发送到底层core软件的AT命令”的应答处理
@@ -49,7 +58,10 @@ local function rsp(cmd, success, response, intermediate)
             calib = false
         end
     elseif prefix == '+CCLK' then
-        if success then sys.publish('TIME_UPDATE_IND') end
+        if success then
+            sys.publish('TIME_UPDATE_IND')
+            setTimeReport()
+        end
         if setClkCbFnc then setClkCbFnc(getClock(),success) end
     elseif cmd:match("AT%+WISN=") then
         if success then
@@ -84,7 +96,7 @@ function setClock(t,cbFnc)
         return
     end
     setClkCbFnc = cbFnc
-    req(string.format("AT+CCLK=\"%02d/%02d/%02d,%02d:%02d:%02d\"", string.sub(t.year, 3, 4), t.month, t.day, t.hour, t.min, t.sec), nil, rsp)
+    req(string.format("AT+CCLK=\"%02d/%02d/%02d,%02d:%02d:%02d+32\"", string.sub(t.year, 3, 4), t.month, t.day, t.hour, t.min, t.sec), nil, rsp)
 end
 --- 获取系统时间
 -- @return table time,{year=2017,month=2,day=14,hour=14,min=19,sec=23}
@@ -213,3 +225,4 @@ req("AT+WISN?")
 --查询IMEI
 req("AT+CGSN")
 req("AT+MUID?")
+setTimeReport()

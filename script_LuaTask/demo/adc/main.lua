@@ -1,7 +1,7 @@
 --必须在这个位置定义PROJECT和VERSION变量
 --PROJECT：ascii string类型，可以随便定义，只要不使用,就行
 --VERSION：ascii string类型，如果使用Luat物联云平台固件升级的功能，必须按照"X.X.X"定义，X表示1位数字；否则可随便定义
-PROJECT = "SOCKET_LONG_CONNECTION"
+PROJECT = "ADC"
 VERSION = "2.0.0"
 
 --加载日志功能模块，并且设置日志输出等级
@@ -23,13 +23,20 @@ require "net"
 --每1分钟查询一次基站信息
 net.startQueryAll(60000, 60000)
 
---加载控制台调试功能模块（此处代码配置的是uart2，波特率115200）
+--加载控制台调试功能模块（此处代码配置的是uart1，波特率115200）
 --此功能模块不是必须的，根据项目需求决定是否加载
 --使用时注意：控制台使用的uart不要和其他功能使用的uart冲突
 --使用说明参考demo/console下的《console功能使用说明.docx》
-require "misc"
-require "console"
-console.setup(2, 115200)
+--require "console"
+--console.setup(1, 115200)
+
+--加载硬件看门狗功能模块
+--根据自己的硬件配置决定：1、是否加载此功能模块；2、配置Luat模块复位单片机引脚和互相喂狗引脚
+--合宙官方出售的Air201开发板上有硬件看门狗，所以使用官方Air201开发板时，必须加载此功能模块
+--[[
+require "wdt"
+wdt.setup(pio.P0_30, pio.P0_31)
+]]
 
 --加载网络指示灯和LTE指示灯功能模块
 --根据自己的项目需求和硬件配置决定：1、是否加载此功能模块；2、配置指示灯引脚
@@ -38,21 +45,20 @@ console.setup(2, 115200)
 --netLed.setup(true,pio.P2_0,pio.P2_1)
 --网络指示灯功能模块中，默认配置了各种工作状态下指示灯的闪烁规律，参考netLed.lua中ledBlinkTime配置的默认值
 --如果默认值满足不了需求，此处调用netLed.updateBlinkTime去配置闪烁时长
---LTE指示灯功能模块中，配置的是注册上4G网络，灯就常亮，其余任何状态灯都会熄灭
 
 --加载错误日志管理功能模块【强烈建议打开此功能】
 --如下2行代码，只是简单的演示如何使用errDump功能，详情参考errDump的api
 require "errDump"
 errDump.request("udp://ota.airm2m.com:9072")
 
---加载远程升级功能模块【强烈建议打开此功能，如果使用了阿里云的OTA功能，可以不打开此功能】
+--加载远程升级功能模块【强烈建议打开此功能】
 --如下3行代码，只是简单的演示如何使用update功能，详情参考update的api以及demo/update
 --PRODUCT_KEY = "v32xEAKsGTIEQxtqgwCldp5aPlcnPs3K"
 --require "update"
 --update.request()
 
---加载socket长连接功能测试模块
-require "socketTask"
+--加载ADC功能测试模块
+require "testAdc"
 
 --启动系统框架
 sys.init(0, 0)

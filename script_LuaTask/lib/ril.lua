@@ -154,7 +154,7 @@ end
 ]]
 local function rsp()
     --停止应答超时定时器
-    sys.timerStop(atimeout)
+    sys.timerStopAll(atimeout)
     --如果发送AT命令时已经同步指定了应答处理函数
     if currsp then
         currsp(currcmd, result, respdata, interdata)

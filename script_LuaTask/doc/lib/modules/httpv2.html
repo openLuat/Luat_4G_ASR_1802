@@ -39,13 +39,13 @@
 <h2>Modules</h2>
 <ul class="nowrap">
   <li><a href="../modules/aLiYun.html">aLiYun</a></li>
-  <li><strong>aLiYunOta</strong></li>
+  <li><a href="../modules/aLiYunOta.html">aLiYunOta</a></li>
   <li><a href="../modules/clib.html">clib</a></li>
   <li><a href="../modules/common.html">common</a></li>
   <li><a href="../modules/console.html">console</a></li>
   <li><a href="../modules/errDump.html">errDump</a></li>
   <li><a href="../modules/http.html">http</a></li>
-  <li><a href="../modules/httpv2.html">httpv2</a></li>
+  <li><strong>httpv2</strong></li>
   <li><a href="../modules/lbsLoc.html">lbsLoc</a></li>
   <li><a href="../modules/led.html">led</a></li>
   <li><a href="../modules/link.html">link</a></li>
@@ -73,40 +73,25 @@
 
 <div id="content">
 
-<h1>Module <code>aLiYunOta</code></h1>
-<p>模块功能：阿里云物联网套件客户端OTA功能.</p>
-<pre>
-<p>
- 目前固件签名算法仅支持MD5</p>
-</pre>
+<h1>Module <code>httpv2</code></h1>
+<p>模块功能：HTTP客户端</p>
+<p></p>
     <h3>Info:</h3>
     <ul>
-        <li><strong>Copyright</strong>: openLuat</li>
-        <li><strong>Release</strong>: 2018.04.16</li>
+        <li><strong>Copyright</strong>: OpenLuat.com</li>
+        <li><strong>Release</strong>: 2017.10.23</li>
         <li><strong>License</strong>: MIT</li>
-        <li><strong>Author</strong>: openLuat</li>
+        <li><strong>Author</strong>: 稀饭放姜</li>
     </ul>
 
 
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#setVer">
-    setVer (version)
+	<td class="name" nowrap><a href="#request">
+    request (method, url, timeout, params, data, ctype, basic, headers)
     </a></td>
-	<td class="summary">设置当前的固件版本号</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#setName">
-    setName (name)
-    </a></td>
-	<td class="summary">设置新固件保存的文件名</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#setCb">
-    setCb (cbFnc)
-    </a></td>
-	<td class="summary">设置新固件下载后的回调函数</td>
+	<td class="summary">HTTP客户端</td>
 	</tr>
 </table>
 
@@ -118,99 +103,62 @@
 
     <dl class="function">
     <dt>
-    <a name = "setVer"></a>
+    <a name = "request"></a>
     <strong  style="color: red;">
-    setVer (version)
+    request (method, url, timeout, params, data, ctype, basic, headers)
     </strong>
     </dt>
     <dd>
-    <pre class="example"  style="color: red;">设置当前的固件版本号</pre>
+    <pre class="example"  style="color: red;">HTTP客户端</pre>
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">version</span>
+        <li><span class="parameter">method</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
-        <pre class="example">当前固件版本号</pre>
+        <pre class="example">提交方式"GET" or "POST"</pre>
         </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ul>
-        <li>
-        <pre class="example">nil</pre></il>
-    </ul>
-
-
-
-    <h3>Usage:</h3>
-    <ul>
-        <li><pre class="example">aLiYunOta.setVer(<span class="string">"MCU_VERSION_1.0.0"</span>)</pre></il>
-    </ul>
-
-</dd>
-    <dt>
-    <a name = "setName"></a>
-    <strong  style="color: red;">
-    setName (name)
-    </strong>
-    </dt>
-    <dd>
-    <pre class="example"  style="color: red;">设置新固件保存的文件名</pre>
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">name</span>
+        <li><span class="parameter">url</span>
             <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
-        <pre class="example">新固件下载后保存的文件名；注意此文件名并不是保存的完整路径，完整路径通过setCb设置的回调函数去获取</pre>
+        <pre class="example">HTTP请求超链接</pre>
+        </li>
+        <li><span class="parameter">timeout</span>
+            <span class="types"><span class="type">number</span></span>
+        <pre class="example">超时时间</pre>
+        </li>
+        <li><span class="parameter">params</span>
+        <pre class="example">table类型，请求发送的查询字符串，通常为键值对表</pre>
+        </li>
+        <li><span class="parameter">data</span>
+        <pre class="example">table类型，正文提交的body,通常为键值对、json或文件对象类似的表</pre>
+        </li>
+        <li><span class="parameter">ctype</span>
+            <span class="types"><span class="type">number</span></span>
+        <pre class="example">Content-Type的类型(可选1,2,3),默认1:"urlencode",2:"json",3:"octet-stream"</pre>
+        </li>
+        <li><span class="parameter">basic</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+        <pre class="example">HTTP客户端的authorization basic验证的"username:password"</pre>
+        </li>
+        <li><span class="parameter">headers</span>
+        <pre class="example">table类型,HTTP headers部分</pre>
         </li>
     </ul>
 
     <h3>Returns:</h3>
-    <ul>
+    <ol>
         <li>
-        <pre class="example">nil</pre></il>
-    </ul>
+        <pre class="example">string,table,string,正常返回response_code, response_header, response_body</pre></li>
+        <li>
+        <pre class="example">string,string,错误返回 response_code, error_message</pre></li>
+    </ol>
 
 
 
     <h3>Usage:</h3>
     <ul>
-        <li><pre class="example">aLiYunOta.setName(<span class="string">"MCU_FIRMWARE.bin"</span>)</pre></il>
-    </ul>
-
-</dd>
-    <dt>
-    <a name = "setCb"></a>
-    <strong  style="color: red;">
-    setCb (cbFnc)
-    </strong>
-    </dt>
-    <dd>
-    <pre class="example"  style="color: red;">设置新固件下载后的回调函数</pre>
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">cbFnc</span>
-            <span class="types"><span class="type">function</span></span>
-        <pre class="example">新固件下载后的回调函数
- 回调函数的调用形式为：cbFnc(result,filePath)，result为下载结果，true表示成功，false或者nil表示失败；filePath为新固件文件保存的完整路径</pre>
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ul>
-        <li>
-        <pre class="example">nil</pre></il>
-    </ul>
-
-
-
-    <h3>Usage:</h3>
-    <ul>
-        <li><pre class="example">aLiYunOta.setCb(cbFnc)</pre></il>
+        <li><pre class="example"><span class="keyword">local</span> c, h, b = httpv2.request(url, method, headers, body)</pre></il>
+        <li><pre class="example"><span class="keyword">local</span> r, e  = httpv2.request(<span class="string">"http://wrong.url/ "</span>)</pre></il>
     </ul>
 
 </dd>

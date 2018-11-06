@@ -15,7 +15,7 @@ module(..., package.seeall)
 local sProductKey,sProductSecret,sGetDeviceNameFnc,sGetDeviceSecretFnc,sSetDeviceSecretFnc
 local sKeepAlive,sCleanSession,sWill
 
-local outQuene =
+local outQueue =
 {
     SUBSCRIBE = {},
     PUBLISH = {},
@@ -24,17 +24,17 @@ local outQuene =
 local evtCb = {}
 
 local function insert(type,topic,qos,payload,cbFnc,cbPara)
-    table.insert(outQuene[type],{t=topic,q=qos,p=payload,cb=cbFnc,para=cbPara})
+    table.insert(outQueue[type],{t=topic,q=qos,p=payload,cb=cbFnc,para=cbPara})
 end
 
 local function remove(type)
-    if #outQuene[type]>0 then return table.remove(outQuene[type],1) end
+    if #outQueue[type]>0 then return table.remove(outQueue[type],1) end
 end
 
 local function procSubscribe(client)
     local i
-    for i=1,#outQuene["SUBSCRIBE"] do
-        if not client:subscribe(outQuene["SUBSCRIBE"][i].t,outQuene["SUBSCRIBE"][i].q) then
+    for i=1,#outQueue["SUBSCRIBE"] do
+        if not client:subscribe(outQueue["SUBSCRIBE"][i].t,outQueue["SUBSCRIBE"][i].q) then
             return false,"procSubscribe"
         end
     end
@@ -47,7 +47,7 @@ local function procReceive(client)
         r,data = client:receive(2000)
         --接收到数据
         if r and data~="timeout" then
-            log.info("aLiYun.procReceive",data.topic--[[,string.toHex(data.payload)]])
+            log.info("aLiYun.procReceive",data.topic,string.toHex(data.payload))
             --OTA消息
             if data.topic=="/ota/device/upgrade/"..sProductKey.."/"..sGetDeviceNameFnc() then
                 if aLiYunOta and aLiYunOta.upgrade then
@@ -59,7 +59,7 @@ local function procReceive(client)
             end
             
             --如果有等待发送的数据，则立即退出本循环
-            if #outQuene["PUBLISH"]>0 then return true,"procReceive" end
+            if #outQueue["PUBLISH"]>0 then return true,"procReceive" end
         else
             break
         end
@@ -69,8 +69,8 @@ local function procReceive(client)
 end
 
 local function procSend(client)
-    while #outQuene["PUBLISH"]>0 do
-        local item = table.remove(outQuene["PUBLISH"],1)
+    while #outQueue["PUBLISH"]>0 do
+        local item = table.remove(outQueue["PUBLISH"],1)
         local result = client:publish(item.t,item.p,item.q)
         if item.cb then item.cb(result,item.para) end
         if not result then return false,"procSend" end
@@ -79,46 +79,57 @@ local function procSend(client)
 end
 
 function clientDataTask(host,tPorts,clientId,user,password)
+    local retryConnectCnt = 0
+    local portIdx = 0
     while true do
-        while not socket.isReady() do sys.waitUntil("IP_READY_IND") end
-
-        local mqttClient = mqtt.client(clientId,sKeepAlive or 240,user,password,sCleanSession,sWill)
-        local portIdx = 0
-        while true do
+        if not socket.isReady() then
+            retryConnectCnt = 0
+            --等待网络环境准备就绪，超时时间是5分钟
+            sys.waitUntil("IP_READY_IND",300000)
+        end
+        
+        if socket.isReady() then
+            local mqttClient = mqtt.client(clientId,sKeepAlive or 240,user,password,sCleanSession,sWill)
             portIdx = portIdx%(#tPorts)+1
+            
             if mqttClient:connect(host,tonumber(tPorts[portIdx]),"tcp_ssl") then
-                break
-            end
-            sys.wait(2000)
-            portIdx = portIdx+1
-        end
+                retryConnectCnt = 0
+                if aLiYunOta and aLiYunOta.connectCb then aLiYunOta.connectCb(true,sProductKey,sGetDeviceNameFnc()) end
+                if evtCb["connect"] then evtCb["connect"](true) end
 
-        if aLiYunOta and aLiYunOta.connectCb then aLiYunOta.connectCb(true,sProductKey,sGetDeviceNameFnc()) end
-        if evtCb["connect"] then evtCb["connect"](true) end
-
-        local result,prompt = procSubscribe(mqttClient)
-        if result then
-            local procs,k,v = {procReceive,procSend}
-            while true do
-                for k,v in pairs(procs) do
-                    result,prompt = v(mqttClient)
-                    if not result then log.warn("aLiYun.clientDataTask."..prompt.." error") break end
+                local result,prompt = procSubscribe(mqttClient)
+                if result then
+                    local procs,k,v = {procReceive,procSend}
+                    while true do
+                        for k,v in pairs(procs) do
+                            result,prompt = v(mqttClient)
+                            if not result then log.warn("aLiYun.clientDataTask."..prompt.." error") break end
+                        end
+                        if not result then break end
+                    end
+                else
+                    log.warn("aLiYun.clientDataTask."..prompt.." error")
                 end
-                if not result then break end
-            end
+
+                while #outQueue["PUBLISH"]>0 do
+                    local item = table.remove(outQueue["PUBLISH"],1)
+                    if item.cb then item.cb(false,item.para) end
+                end
+                if aLiYunOta and aLiYunOta.connectCb then aLiYunOta.connectCb(false,sProductKey,sGetDeviceNameFnc()) end
+                if evtCb["connect"] then evtCb["connect"](false) end
+            else
+                retryConnectCnt = retryConnectCnt+1
+            end          
+
+            mqttClient:disconnect()
+            if retryConnectCnt>=5 then link.shut() retryConnectCnt=0 end
+            sys.wait(2000)
         else
-            log.warn("aLiYun.clientDataTask."..prompt.." error")
+            --进入飞行模式，20秒之后，退出飞行模式
+            net.switchFly(true)
+            sys.wait(20000)
+            net.switchFly(false)
         end
-
-        while #outQuene["PUBLISH"]>0 do
-            local item = table.remove(outQuene["PUBLISH"],1)
-            if item.cb then item.cb(false,item.para) end
-        end
-        if aLiYunOta and aLiYunOta.connectCb then aLiYunOta.connectCb(false,sProductKey,sGetDeviceNameFnc()) end
-        if evtCb["connect"] then evtCb["connect"](false) end
-
-        mqttClient:disconnect()
-        sys.wait(2000)
     end
 end
 

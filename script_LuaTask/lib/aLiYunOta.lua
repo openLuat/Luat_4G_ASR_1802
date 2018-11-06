@@ -29,7 +29,7 @@ local lastStep
 local downloading
 
 local function otaCb(result,filePath,md5,size)
-    log.info("aLiYunOta.otaCb",gCb,result,filePath,size)
+    log.info("aLiYunOta.otaCb",gCb,result,filePath,size,io.fileSize(filePath))
     downloading = false
   --校验MD5
     if result then

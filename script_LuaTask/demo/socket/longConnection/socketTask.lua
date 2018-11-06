@@ -12,11 +12,11 @@
 -- @copyright openLuat
 -- @release 2018.03.27
 
+module(...,package.seeall)
+
 require"socket"
 require"socketOutMsg"
 require"socketInMsg"
-module(...,package.seeall)
-
 
 local ready = false
 

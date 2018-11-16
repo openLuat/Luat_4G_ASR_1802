@@ -123,7 +123,7 @@ function request(method, url, timeout, params, data, ctype, basic, headers)
         local file = io.open(data, 'r')
         if file then
             while true do
-                local dat = file:read(1024)
+                local dat = file:read(1460)
                 if dat == nil then
                     io.close(file)
                     break
@@ -157,9 +157,7 @@ function request(method, url, timeout, params, data, ctype, basic, headers)
     while true do
         table.insert(msg, s)
         r, s = c:recv(timeout)
-        if not r then
-            break
-        end
+        if not r then break end
     end
     c:close()
     str = table.concat(msg)
@@ -167,5 +165,5 @@ function request(method, url, timeout, params, data, ctype, basic, headers)
     if gzip then
         return response_code, response_header, ((zlib.inflate(table.concat(msg))):read())
     end
-    return response_code, response_header, str:sub(len + 1, -1)
+    return response_code, response_header, str:sub((len or 0) + 1, -1)
 end

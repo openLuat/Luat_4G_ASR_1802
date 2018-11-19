@@ -17,7 +17,7 @@ LOG_LEVEL = log.LOGLEVEL_TRACE
 --log.openTrace(true,1,115200)
 
 require "sys"
-
+require "httpv2"
 require "net"
 --每1分钟查询一次GSM信号强度
 --每1分钟查询一次基站信息

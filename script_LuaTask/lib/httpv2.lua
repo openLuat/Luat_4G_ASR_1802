@@ -137,13 +137,13 @@ function request(method, url, timeout, params, data, ctype, basic, headers, cert
     local msg, str = {}, ""
     local r, s = c:recv(timeout)
     if not r then return '503', 'SOCKET_RECV_TIMOUT' end
+    -- 处理状态代码
     _, idx, response_code = s:find("%s(%d+)%s.-\r\n")
     _, offset = s:find('\r\n\r\n')
     log.info('httpv2.response code and message:', response_code)
-    for k, v in string.gmatch(s:sub(idx + 1, offset), "(.-):%s*(.-)\r\n") do
-        response_header[k] = v
-    end
-    local gzip = s:match('%aontent%-%ancoding: (%a+)')
+    -- 处理headers代码
+    for k, v in string.gmatch(s:sub(idx + 1, offset), "(.-):%s*(.-)\r\n") do response_header[k] = v end
+    -- 处理body
     while true do
         table.insert(msg, s)
         r, s = c:recv(timeout)
@@ -151,5 +151,6 @@ function request(method, url, timeout, params, data, ctype, basic, headers, cert
     end
     c:close()
     str = table.concat(msg) or ""
+    local gzip = response_header["Content-Encoding"] == "gzip"
     return response_code, response_header, gzip and ((zlib.inflate(str:sub((offset or 0) + 1, -1))):read()) or str:sub((offset or 0) + 1, -1)
 end

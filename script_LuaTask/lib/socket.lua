@@ -19,25 +19,14 @@ local INDEX_MAX = 49
 -- @return 可用true,不可用false
 socket.isReady = link.isReady
 
-local function isSocketActive()
-    for _, c in pairs(sockets) do
-        if c.connected then
-            return true
-        end
-    end
-end
-
-local function socketStatusNtfy()
-    sys.publish("SOCKET_ACTIVE", isSocketActive())
-end
-
 local function errorInd(error)
     for _, c in pairs(sockets) do -- IP状态出错时，通知所有已连接的socket
-        --if c.connected then
-        if error == 'CLOSED' then c.connected = false socketStatusNtfy() end
         c.error = error
+        c.connected = false
+        if error == 'CLOSED' then
+            sys.publish("SOCKET" .. c.id .. "_ACTIVE", false)
+        end
         if c.co and coroutine.status(c.co) == "suspended" then coroutine.resume(c.co, false) end
-    --end
     end
 end
 
@@ -48,7 +37,7 @@ sys.subscribe('IP_SHUT_IND', function()errorInd('CLOSED') end)
 local mt = {__index = {}}
 local function socket(protocol, cert)
     local ssl = protocol:match("SSL")
-    local id = table.remove(ssl and validSsl or valid)
+    local id = table.remove(valid)
     if not id then
         log.warn("socket.socket: too many sockets")
         return nil
@@ -107,6 +96,7 @@ end
 -- @string address 服务器地址，支持ip和域名
 -- @param port string或者number类型，服务器端口
 -- @return bool result true - 成功，false - 失败
+-- @return string ,id '0' -- '8' ,返回通道ID编号
 -- @usage  c = socket.tcp(); c:connect();
 function mt.__index:connect(address, port)
     assert(self.co == coroutine.running(), "socket:connect: coroutine mismatch")
@@ -115,8 +105,6 @@ function mt.__index:connect(address, port)
         log.info("socket.connect: ip not ready")
         return false
     end
-    
-    log.info("socket.connect", self.protocol, address, port, self.cert)
     local core_id
     if self.protocol == 'TCP' then
         core_id = socketcore.sock_conn(0, address, port)
@@ -144,14 +132,14 @@ function mt.__index:connect(address, port)
         log.info("socket:connect: core sock conn error")
         return false
     end
-    log.info("socket:connect", core_id, self.protocol, address, port)
+    log.info("socket:connect-coreid,prot,addr,port,cert", core_id, self.protocol, address, port, self.cert)
     self.core_id = core_id
     self.wait = "SOCKET_CONNECT"
-    if coroutine.yield() == false then return false end
+    if not coroutine.yield() then return false end
     log.info("socket:connect: connect ok")
     self.connected = true
-    socketStatusNtfy()
-    return true
+    sys.publish("SOCKET" .. self.id .. "_ACTIVE", self.connected)
+    return true, self.id
 end
 --- 发送数据
 -- @string data 数据
@@ -172,7 +160,7 @@ function mt.__index:send(data)
         -- 按最大MTU单元对data分包
         local stepData = string.sub(data, i, i + SENDSIZE - 1)
         --发送AT命令执行数据发送
-        log.info("socket.send", "total " .. stepData:len() .. " bytes", "first 300 bytes", stepData:sub(1, 300))
+        log.info("socket.send", "total " .. stepData:len() .. " bytes", "first 30 bytes", stepData:sub(1, 30))
         socketcore.sock_send(self.core_id, stepData)
         self.wait = "SOCKET_SEND"
         if not coroutine.yield() then return false end
@@ -198,12 +186,6 @@ function mt.__index:recv(timeout, msg)
     if #self.input == 0 then
         self.wait = "+RECEIVE"
         if timeout and timeout > 0 then
-            --     local r, s = sys.wait(timeout)
-            --     if r == nil then
-            --         return false, "timeout"
-            --     else
-            --         return r, s
-            --     end
             local r, s = sys.waitUntilExt(msg or tostring(self.co), timeout)
             -- log.info("socket.recv msg:", r, s)
             if not r then
@@ -238,7 +220,7 @@ function mt.__index:close()
         socketcore.sock_close(self.core_id)
         self.wait = "SOCKET_CLOSE"
         coroutine.yield()
-        socketStatusNtfy()
+        sys.publish("SOCKET" .. self.id .. "_ACTIVE", self.connected)
     end
     if self.id ~= nil then
         table.insert(valid, 1, self.id)
@@ -287,7 +269,7 @@ rtos.on(rtos.MSG_SOCK_CLOSE_IND, function(msg)
     end
     item.connected = false
     item.error = 'CLOSED'
-    socketStatusNtfy()
+    sys.publish("SOCKET" .. item.id .. "_ACTIVE", item.connected)
     coroutine.resume(item.co, false)
 end)
 rtos.on(rtos.MSG_SOCK_RECV_IND, function(msg)
@@ -312,7 +294,6 @@ end)
 
 function printStatus()
     log.info('socket.printStatus', 'valid id', table.concat(valid))
-    
     for _, client in pairs(sockets) do
         for k, v in pairs(client) do
             log.info('socket.printStatus', 'client', client.id, k, v)

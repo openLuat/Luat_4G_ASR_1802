@@ -142,7 +142,7 @@ function mt.__index:send(data)
         return false
     end
     if data and data ~= "" then table.insert(self.output, data) end
-    if self.wait == "+RECEIVE" then coroutine.resume(self.co, false) end
+    if self.co ~= coroutine.running() then coroutine.resume(self.co, false) end
     return true
 end
 --- 接收数据

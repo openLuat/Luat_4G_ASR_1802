@@ -163,7 +163,6 @@ function mt.__index:recv(timeout, msg)
         iSubscribe = true
         sys.subscribe(msg, function(data)
             table.insert(self.output, data)
-            log.info("当前self.wait的状态:", self.wait)
             if self.wait == "+RECEIVE" then coroutine.resume(self.co, false) end
         end)
     end

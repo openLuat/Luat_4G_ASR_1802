@@ -163,7 +163,7 @@ function mt.__index:recv(timeout, msg)
         iSubscribe = true
         sys.subscribe(msg, function(data)
             table.insert(self.output, data)
-            if self.wait == "+RECEIVE" then self.wait = "" coroutine.resume(self.co, false) end
+            if self.wait == "+RECEIVE" then coroutine.resume(self.co, false) end
         end)
     end
     local data = table.concat(self.output)
@@ -179,7 +179,6 @@ function mt.__index:recv(timeout, msg)
         self.wait = "+RECEIVE"
         if timeout and timeout > 0 then
             local r, s = sys.wait(timeout)
-            self.wait = ""
             if r == nil then
                 return false, "timeout"
             elseif r == false then

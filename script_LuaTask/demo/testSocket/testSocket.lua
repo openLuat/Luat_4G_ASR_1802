@@ -41,13 +41,17 @@ end)
 sys.taskInit(function()
     while not socket.isReady() do sys.wait(2000) end
     sys.wait(10000)
-    local i = 0
-    while true do
-        i = i + 1
+    -- 这是演示用sys.publish()发送数据
+    for i = 1, 100 do
         log.info("这是第" .. i .. "次发布的消息!")
-        sys.publish("pub_msg", string.rep("0123456789", 1))
+        sys.publish("pub_msg", string.rep("0123456789", 10))
         sys.wait(500)
     end
+    local function send(c, msg)
+        c:send(msg)
+    end
+    -- 这是演示用socket:send()方法发送数据
+    sys.timerLoopStart(send, 10000, c, string.rep("0123456789", 10))
 end)
 
 sys.timerLoopStart(function()

@@ -8,7 +8,7 @@ require "socket"
 module(..., package.seeall)
 
 -- 此处的IP和端口请填上你自己的socket服务器和端口
-local ip, port ,c = "36.7.87.100", "6500"
+local ip, port, c = "36.7.87.100", "6500"
 
 -- tcp test
 sys.taskInit(function()
@@ -41,15 +41,13 @@ end)
 sys.taskInit(function()
     while not socket.isReady() do sys.wait(2000) end
     sys.wait(10000)
-    for i = 1, 2 do
+    local i = 0
+    while true do
+        i = i + 1
         log.info("这是第" .. i .. "次发布的消息!")
-        sys.publish("pub_msg", string.rep("0123456789", 1024))
-        sys.wait(100)
+        sys.publish("pub_msg", string.rep("0123456789", 1))
+        sys.wait(500)
     end
-    local function send(c, msg)
-        c:send(msg)
-    end
-    sys.timerLoopStart(send, 10000, c, string.rep("0123456789", 10))
 end)
 
 sys.timerLoopStart(function()

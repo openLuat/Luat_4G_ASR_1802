@@ -92,7 +92,7 @@ end
 -- @usage  c = socket.tcp(); c:connect();
 function mt.__index:connect(address, port)
     assert(self.co == coroutine.running(), "socket:connect: coroutine mismatch")
-    
+
     if not link.isReady() then
         log.info("socket.connect: ip not ready")
         return false
@@ -163,7 +163,7 @@ function mt.__index:recv(timeout, msg)
         iSubscribe = true
         sys.subscribe(msg, function(data)
             table.insert(self.output, data)
-            if self.wait == "+RECEIVE" then coroutine.resume(self.co, false) end
+            if self.wait == "+RECEIVE" then self.wait = "" coroutine.resume(self.co, false) end
         end)
     end
     local data = table.concat(self.output)
@@ -174,11 +174,12 @@ function mt.__index:recv(timeout, msg)
         socketcore.sock_send(self.id, data:sub(i, i + SENDSIZE - 1))
         if not coroutine.yield() then return false end
     end
-    
+
     if #self.input == 0 then
         self.wait = "+RECEIVE"
         if timeout and timeout > 0 then
             local r, s = sys.wait(timeout)
+            self.wait = ""
             if r == nil then
                 return false, "timeout"
             elseif r == false then
@@ -190,7 +191,7 @@ function mt.__index:recv(timeout, msg)
             return coroutine.yield()
         end
     end
-    
+
     if self.protocol == "UDP" then
         return true, table.remove(self.input)
     else
@@ -254,7 +255,7 @@ rtos.on(rtos.MSG_SOCK_RECV_IND, function(msg)
         log.warn('close ind on nil socket', msg.socket_index, msg.id)
         return
     end
-    
+
     local s = socketcore.sock_recv(msg.socket_index, msg.recv_len)
     if sockets[msg.socket_index].wait == "+RECEIVE" then
         coroutine.resume(sockets[msg.socket_index].co, true, s)

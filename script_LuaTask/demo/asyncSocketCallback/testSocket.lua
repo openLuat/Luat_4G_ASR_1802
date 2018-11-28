@@ -19,7 +19,7 @@ sys.taskInit(function()
         asyncClient = socket.tcp()
         while not asyncClient:connect(ip, port) do sys.wait(2000) end
         while asyncClient:asyncSelect() do end
-        c:close()
+        asyncClient:close()
     end
 end)
 

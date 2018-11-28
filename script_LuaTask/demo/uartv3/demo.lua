@@ -34,8 +34,8 @@ uart.on(UART_ID, "sent", function()
     end
 end)
 function write(uid, str)
-    for i = 1, #str, 8160 do
-        table.insert(writeBuff[1], str:sub(i, i + 8160 - 1))
+    for i = 1, #str, 8192 do
+        table.insert(writeBuff[1], str:sub(i, i + 8192 - 1))
     end
     log.info("串口缓冲队列的长度:", writeBusy, #table.concat(writeBuff[1]))
     if not writeBusy then

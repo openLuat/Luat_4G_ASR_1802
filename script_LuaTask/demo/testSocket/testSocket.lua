@@ -45,7 +45,6 @@ sys.taskInit(function()
     sys.wait(10000)
     -- 这是演示用sys.publish()发送数据
     for i = 1, 10 do
-        log.info("这是第" .. i .. "次发布的消息!")
         sys.publish("pub_msg", string.rep("0123456789", 1024))
         sys.wait(500)
     end
@@ -55,3 +54,4 @@ sys.timerLoopStart(function()
     log.info("打印占用的内存:", _G.collectgarbage("count"))-- 打印占用的RAM
     log.info("打印可用的空间", rtos.get_fs_free_size())-- 打印剩余FALSH，单位Byte
 end, 1000)
+

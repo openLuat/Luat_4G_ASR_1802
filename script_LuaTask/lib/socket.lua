@@ -33,7 +33,8 @@ sys.subscribe("IP_ERROR_IND", function()errorInd('IP_ERROR_IND') end)
 sys.subscribe('IP_SHUT_IND', function()errorInd('CLOSED') end)
 
 -- 创建socket函数
-local mt = {__index = {}}
+local mt = {}
+mt.__index = mt
 local function socket(protocol, cert)
     local ssl = protocol:match("SSL")
     local co = coroutine.running()
@@ -90,7 +91,7 @@ end
 -- @return bool result true - 成功，false - 失败
 -- @return string ,id '0' -- '8' ,返回通道ID编号
 -- @usage  c = socket.tcp(); c:connect();
-function mt.__index:connect(address, port)
+function mt:connect(address, port)
     assert(self.co == coroutine.running(), "socket:connect: coroutine mismatch")
     
     if not link.isReady() then
@@ -132,11 +133,64 @@ function mt.__index:connect(address, port)
     sys.publish("SOCKET" .. self.id .. "_ACTIVE", true)
     return true, self.id
 end
+
+--- 异步收发选择器
+-- @return boole,false 失败，true 表示成功
+function mt:asyncSelect()
+    assert(self.co == coroutine.running(), "socket:asyncSelect: coroutine mismatch")
+    if self.error then
+        log.warn('socket.client:asyncSelect', 'error', self.error)
+        return false
+    end
+    
+    self.wait = "SOCKET_SEND"
+    while #self.output ~= 0 do
+        local data = table.concat(self.output)
+        self.output = {}
+        for i = 1, string.len(data), SENDSIZE do
+            -- 按最大MTU单元对data分包
+            socketcore.sock_send(self.id, data:sub(i, i + SENDSIZE - 1))
+            if not coroutine.yield() then return false end
+        end
+    end
+    self.wait = "SOCKET_WAIT"
+    sys.publish("SOCKET_SEND", self.id)
+    return coroutine.yield()
+end
+--- 异步发送数据
+-- @string data 数据
+-- @return result true - 成功，false - 失败
+-- @usage  c = socket.tcp(); c:connect(); c:asyncSend("12345678");
+function mt:asyncSend(data)
+    if self.error then
+        log.warn('socket.client:asyncSend', 'error', self.error)
+        return false
+    end
+    table.insert(self.output, data or "")
+    if self.wait == "SOCKET_WAIT" then coroutine.resume(self.co, true) end
+    return true
+end
+--- 异步接收数据
+-- @return nil, 表示没有收到数据
+-- @return data 如果是UDP协议，返回新的数据包,如果是TCP,返回所有收到的数据,没有数据返回长度为0的空串
+-- @usage c = socket.tcp(); c:connect()
+-- @usage data = c:asyncRecv()
+function mt:asyncRecv()
+    if #self.input == 0 then return "" end
+    if self.protocol == "UDP" then
+        return table.remove(self.input)
+    else
+        local s = table.concat(self.input)
+        self.input = {}
+        return s
+    end
+end
+
 --- 发送数据
 -- @string data 数据
 -- @return result true - 成功，false - 失败
 -- @usage  c = socket.tcp(); c:connect(); c:send("12345678");
-function mt.__index:send(data)
+function mt:send(data)
     assert(self.co == coroutine.running(), "socket:recv: coroutine mismatch")
     if self.error then
         log.warn('socket.client:send', 'error', self.error)
@@ -150,6 +204,7 @@ function mt.__index:send(data)
     end
     return true
 end
+
 --- 接收数据
 -- @number[opt=0] timeout 可选参数，接收超时时间，单位毫秒
 -- @string[opt=nil] msg 可选参数，控制socket所在的线程退出recv阻塞状态
@@ -158,7 +213,7 @@ end
 -- @usage c = socket.tcp(); c:connect()
 -- @usage result, data = c:recv()
 -- @usage false,msg,param = c:recv(60000,"publish_msg")
-function mt.__index:recv(timeout, msg)
+function mt:recv(timeout, msg)
     assert(self.co == coroutine.running(), "socket:recv: coroutine mismatch")
     if self.error then
         log.warn('socket.client:recv', 'error', self.error)
@@ -167,10 +222,11 @@ function mt.__index:recv(timeout, msg)
     if msg and not iSubscribe then
         iSubscribe = true
         sys.subscribe(msg, function(data)
-            table.insert(self.output, data)
+            table.insert(self.output, data or "")
             if self.wait == "+RECEIVE" then coroutine.resume(self.co, false) end
         end)
     end
+    if #self.output ~= 0 then sys.publish(msg) end
     if #self.input == 0 then
         self.wait = "+RECEIVE"
         if timeout and timeout > 0 then
@@ -178,9 +234,9 @@ function mt.__index:recv(timeout, msg)
             if r == nil then
                 return false, "timeout"
             elseif r == false then
-                local data = table.concat(self.output)
+                local dat = table.concat(self.output)
                 self.output = {}
-                return false, msg, data
+                return false, msg, dat
             else
                 return r, s
             end
@@ -201,7 +257,7 @@ end
 --- 销毁一个socket
 -- @return nil
 -- @usage  c = socket.tcp(); c:connect(); c:send("123"); c:close()
-function mt.__index:close()
+function mt:close()
     assert(self.co == coroutine.running(), "socket:close: coroutine mismatch")
     if self.connected then
         log.info("socket:sock_close", self.id)
@@ -262,9 +318,13 @@ rtos.on(rtos.MSG_SOCK_RECV_IND, function(msg)
             sockets[msg.socket_index].input = {}
         end
         table.insert(sockets[msg.socket_index].input, s)
+        sys.publish("SOCKET_RECV", msg.socket_index)
     end
 end)
 
+--- 打印所有socket的状态
+-- @return 无
+-- @usage socket.printStatus()
 function printStatus()
     for _, client in pairs(sockets) do
         for k, v in pairs(client) do

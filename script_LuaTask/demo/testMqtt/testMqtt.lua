@@ -40,6 +40,6 @@ end)
 sys.taskInit(function()
     while true do
         sys.publish("pub_msg", "11223344556677889900AABBCCDDEEFF" .. os.time())
-        sys.wait(180000)
+        sys.wait(100)
     end
 end)

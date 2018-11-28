@@ -92,7 +92,7 @@ end
 -- @usage  c = socket.tcp(); c:connect();
 function mt.__index:connect(address, port)
     assert(self.co == coroutine.running(), "socket:connect: coroutine mismatch")
-
+    
     if not link.isReady() then
         log.info("socket.connect: ip not ready")
         return false
@@ -137,12 +137,17 @@ end
 -- @return result true - 成功，false - 失败
 -- @usage  c = socket.tcp(); c:connect(); c:send("12345678");
 function mt.__index:send(data)
-    if self.id == nil then
-        log.warn('socket.client:send', 'closed')
+    assert(self.co == coroutine.running(), "socket:recv: coroutine mismatch")
+    if self.error then
+        log.warn('socket.client:send', 'error', self.error)
         return false
     end
-    if data and data ~= "" then table.insert(self.output, data) end
-    if self.co ~= coroutine.running() and self.wait == "+RECEIVE" then coroutine.resume(self.co, false) end
+    for i = 1, string.len(data), SENDSIZE do
+        -- 按最大MTU单元对data分包
+        self.wait = "SOCKET_SEND"
+        socketcore.sock_send(self.id, data:sub(i, i + SENDSIZE - 1))
+        if not coroutine.yield() then return false end
+    end
     return true
 end
 --- 接收数据
@@ -166,15 +171,6 @@ function mt.__index:recv(timeout, msg)
             if self.wait == "+RECEIVE" then coroutine.resume(self.co, false) end
         end)
     end
-    local data = table.concat(self.output)
-    self.output = {}
-    for i = 1, string.len(data), SENDSIZE do
-        -- 按最大MTU单元对data分包
-        self.wait = "SOCKET_SEND"
-        socketcore.sock_send(self.id, data:sub(i, i + SENDSIZE - 1))
-        if not coroutine.yield() then return false end
-    end
-
     if #self.input == 0 then
         self.wait = "+RECEIVE"
         if timeout and timeout > 0 then
@@ -182,7 +178,9 @@ function mt.__index:recv(timeout, msg)
             if r == nil then
                 return false, "timeout"
             elseif r == false then
-                return false, msg, ""
+                local data = table.concat(self.output)
+                self.output = {}
+                return false, msg, data
             else
                 return r, s
             end
@@ -190,7 +188,7 @@ function mt.__index:recv(timeout, msg)
             return coroutine.yield()
         end
     end
-
+    
     if self.protocol == "UDP" then
         return true, table.remove(self.input)
     else
@@ -254,7 +252,7 @@ rtos.on(rtos.MSG_SOCK_RECV_IND, function(msg)
         log.warn('close ind on nil socket', msg.socket_index, msg.id)
         return
     end
-
+    
     local s = socketcore.sock_recv(msg.socket_index, msg.recv_len)
     if sockets[msg.socket_index].wait == "+RECEIVE" then
         coroutine.resume(sockets[msg.socket_index].co, true, s)

@@ -8,7 +8,7 @@ require "socket"
 module(..., package.seeall)
 
 -- 此处的IP和端口请填上你自己的socket服务器和端口
-local ip, port, c = "36.7.87.100", "6500"
+local ip, port, c = "180.97.80.55", "12415"
 
 -- tcp test
 sys.taskInit(function()
@@ -24,7 +24,9 @@ sys.taskInit(function()
                 recv_cnt = recv_cnt + #s
                 log.info("这是收到的服务器下发的数据统计:", recv_cnt, "和前30个字节:", s:sub(1, 30))
             elseif s == "pub_msg" then
-                log.info("这是收到别的线程发来的数据消息!")
+                send_cnt = send_cnt + #p
+                log.info("这是收到别的线程发来的数据消息!", send_cnt, "和前30个字节", p:sub(1, 30))
+                if not c:send(p) then break end
             elseif s == "timeout" then
                 log.info("这是等待超时发送心跳包的显示!")
                 if not c:send("ping") then break end
@@ -42,16 +44,11 @@ sys.taskInit(function()
     while not socket.isReady() do sys.wait(2000) end
     sys.wait(10000)
     -- 这是演示用sys.publish()发送数据
-    for i = 1, 100 do
+    for i = 1, 10 do
         log.info("这是第" .. i .. "次发布的消息!")
-        sys.publish("pub_msg", string.rep("0123456789", 10))
+        sys.publish("pub_msg", string.rep("0123456789", 1024))
         sys.wait(500)
     end
-    local function send(c, msg)
-        c:send(msg)
-    end
-    -- 这是演示用socket:send()方法发送数据
-    sys.timerLoopStart(send, 10000, c, string.rep("0123456789", 10))
 end)
 
 sys.timerLoopStart(function()

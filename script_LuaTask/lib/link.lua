@@ -29,9 +29,15 @@ function setDnsIP(ip1, ip2)
 end
 
 function shut()
-	ril.request("AT+CGACT=0,1")
-	ready = false
-	sys.publish('IP_ERROR_IND')
+	ril.request("AT+CGACT=0,1",nil,
+        function(cmd,result)
+            if result then
+                ready = false
+                sys.publish('IP_ERROR_IND')
+                request('AT+CGATT?')
+            end
+        end
+    )	
 end
 
 function pdpCmdCnf(curCmd, result,respdata, interdata)
@@ -140,7 +146,7 @@ end
 --            2/3G发起GPRS附着状态查询
 sys.subscribe("NET_STATE_REGISTERED", Pdp_Act)
 
-local function cindCnf(curCmd, result,respdata,interdata)
+local function cindCnf(cmd, result)
     if not result then
         request("AT+CIND=1", nil, cindCnf,1000)
     end

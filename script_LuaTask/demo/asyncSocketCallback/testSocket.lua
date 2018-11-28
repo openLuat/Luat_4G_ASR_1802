@@ -23,30 +23,22 @@ sys.taskInit(function()
     end
 end)
 
--- 测试代码,用于发送消息给socket
-sys.taskInit(function()
-    while not socket.isReady() do sys.wait(2000) end
-    sys.wait(10000)
-    -- 这是演示用异步接口发送数据
-    for i = 1, 10 do
-        asyncClient:asyncSend(string.rep("0123456789", 1024))
-        sys.wait(500)
+-- 测试代码，用于异步发送消息
+-- 这里演示如何用非线程发送数据
+sys.timerLoopStart(function()
+    if socket.isReady() then
+        asyncClient:asyncSend("0123456789")
+    end
+end, 10000)
+
+-- 测试代码，异步回调接收数据
+sys.subscribe("SOCKET_RECV", function(id)
+    if asyncClient.id == id then
+        local data = asyncClient:asyncRecv()
+        log.info("这是服务器下发数据:", #data, data:sub(1, 30))
     end
 end)
 
--- 测试代码,用于从socket接收消息
-sys.taskInit(function()
-    local cnt = 0
-    while not socket.isReady() do sys.wait(2000) end
-    sys.wait(10000)
-    -- 这是演示用异步接口直接读取服务器数据
-    while true do
-        local data = asyncClient:asyncRecv()
-        cnt = cnt + #data
-        log.info("这是服务器下发数据:", cnt, data:sub(1, 30))
-        sys.wait(1000)
-    end
-end)
 
 sys.timerLoopStart(function()
     log.info("打印占用的内存:", _G.collectgarbage("count"))-- 打印占用的RAM

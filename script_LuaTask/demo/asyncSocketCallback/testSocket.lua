@@ -18,7 +18,7 @@ sys.taskInit(function()
         while not socket.isReady() do sys.wait(1000) end
         asyncClient = socket.tcp()
         while not asyncClient:connect(ip, port) do sys.wait(2000) end
-        while asyncClient:asyncSelect() do end
+        while asyncClient:asyncSelect(60, "ping") do end
         asyncClient:close()
     end
 end)

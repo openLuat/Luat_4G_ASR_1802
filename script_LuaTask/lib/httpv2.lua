@@ -147,6 +147,7 @@ function request(method, url, timeout, params, data, ctype, basic, headers, cert
     log.info('httpv2.response code and message:', response_code)
     -- 处理headers代码
     for k, v in string.gmatch(s:sub(idx + 1, offset), "(.-):%s*(.-)\r\n") do response_header[k] = v end
+    s = s:sub((offset or 0) + 1, -1)
     -- 处理body
     while true do
         table.insert(msg, s)
@@ -156,5 +157,5 @@ function request(method, url, timeout, params, data, ctype, basic, headers, cert
     c:close()
     str = table.concat(msg) or ""
     local gzip = response_header["Content-Encoding"] == "gzip"
-    return response_code, response_header, gzip and ((zlib.inflate(str:sub((offset or 0) + 1, -1))):read()) or str:sub((offset or 0) + 1, -1)
+    return response_code, response_header, gzip and ((zlib.inflate(str)):read()) or str
 end

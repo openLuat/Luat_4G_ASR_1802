@@ -10,7 +10,7 @@ module(..., package.seeall)
 
 local sockets = {}
 -- 单次发送数据最大值
-local SENDSIZE = 1400
+local SENDSIZE = 11200
 -- 缓冲区最大下标
 local INDEX_MAX = 128
 
@@ -135,8 +135,10 @@ function mt:connect(address, port)
 end
 
 --- 异步收发选择器
+-- @number keepAlive,服务器和客户端最大通信间隔时间,也叫心跳包最大时间,单位秒
+-- @string pingreq,心跳包的字符串
 -- @return boole,false 失败，true 表示成功
-function mt:asyncSelect()
+function mt:asyncSelect(keepAlive, pingreq)
     assert(self.co == coroutine.running(), "socket:asyncSelect: coroutine mismatch")
     if self.error then
         log.warn('socket.client:asyncSelect', 'error', self.error)
@@ -155,6 +157,7 @@ function mt:asyncSelect()
     end
     self.wait = "SOCKET_WAIT"
     sys.publish("SOCKET_SEND", self.id)
+    sys.timerStart(self.asyncSend, (keepAlive or 300) * 1000, self, pingreq or "\0")
     return coroutine.yield()
 end
 --- 异步发送数据

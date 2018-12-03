@@ -19,8 +19,6 @@ local gsmRegistered
 local gprsAttached
 --是否有socket连接上后台，true为是，false或者nil为否
 local socketConnected
---定义网络制式
-local netmode= net.NetMode_noNet
 
 --网络指示灯表示的工作状态
 --NULL：功能关闭状态
@@ -82,22 +80,6 @@ local function updateState()
     end
 end
 
---[[ 
--- 模块功能：更新LTE指示灯表示的工作状态
--- 参数：无
--- 返回值：无
---]]
-local function updateState_LTE()
-    netMode=net.getNetMode()
-    if lteSwitch then
-	    if netMode == net.NetMode_LTE then
-		    sys.publish("LTE_LED_UPDATE",true)
-	    else
-		    sys.publish("LTE_LED_UPDATE",false)
-		end
-	end	
-end
-
 --[[
 -- 模块功能：网络指示灯模块的运行任务
 -- 参数：
@@ -136,17 +118,12 @@ end
 -- 返回值：无
 --]]
 local function taskLte(ledPinSetFunc)
-    local arg
     while true do
-	local _,arg = sys.waitUntil("LTE_LED_UPDATE")
-	    if lteSwitch then
-		    if arg == true then
-		        ledPinSetFunc(1)
-		    else 
-		        ledPinSetFunc(0)
-			end
-		end
-	end
+        local _,arg = sys.waitUntil("LTE_LED_UPDATE")
+        if lteSwitch then
+            ledPinSetFunc(arg and 1 or 0)
+        end
+    end
 end
 
 --- 配置网络指示灯和LTE指示灯并且立即执行配置后的动作
@@ -167,11 +144,11 @@ function setup(flag,ledPin,ltePin)
         sys.taskInit(taskLed, pins.setup(ledPin or LEDPIN, 0))
     end
     if flag~=lteSwitch then
-	lteSwitch = flag	
+        lteSwitch = flag	
     end  
-	if flag then
-		sys.taskInit(taskLte, pins.setup(ltePin or LTEPIN, 0))  
-	end	
+    if flag and ltePin and not oldSwitch then
+        sys.taskInit(taskLte, pins.setup(ltePin, 0))  
+    end	
 end
 
 --- 配置某种工作状态下指示灯点亮和熄灭的时长（如果用户不配置，使用netLed.lua中ledBlinkTime配置的默认值）
@@ -203,4 +180,4 @@ sys.subscribe("NET_STATE_UNREGISTER", function() if gsmRegistered then gsmRegist
 sys.subscribe("NET_STATE_REGISTERED", function() if not gsmRegistered then gsmRegistered=true updateState() end end)
 sys.subscribe("GPRS_ATTACH", function(attach) if gprsAttached~=attach then gprsAttached=attach updateState() end end)
 sys.subscribe("SOCKET_ACTIVE", function(active) if socketConnected~=active then socketConnected=active updateState() end end)
-sys.subscribe("NET_UPD_NET_MODE", updateState_LTE)
+sys.subscribe("NET_UPD_NET_MODE", function() if lteSwitch then sys.publish("LTE_LED_UPDATE",net.getNetMode()==net.NetMode_LTE) end end)

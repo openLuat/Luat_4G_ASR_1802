@@ -10,7 +10,7 @@ require "patch"
 module(..., package.seeall)
 
 -- lib脚本版本号，只要lib中的任何一个脚本做了修改，都需要更新此版本号
-SCRIPT_LIB_VER = "2.1.0"
+SCRIPT_LIB_VER = "2.1.1"
 
 -- TaskID最大值
 local TASK_TIMER_ID_MAX = 0x1FFFFFFF
@@ -124,6 +124,7 @@ function init(mode, lprfnc)
     -- 设置AT命令的虚拟串口
     uart.setup(uart.ATC, 0, 0, uart.PAR_NONE, uart.STOP_1)
     log.info("poweron reason:", rtos.poweron_reason(), PROJECT, VERSION, SCRIPT_LIB_VER, rtos.get_version())
+    if type(rtos.get_build_time)=="function" then log.info("core build time", rtos.get_build_time()) end
     if mode == 1 then
         -- 充电开机
         if rtos.poweron_reason() == rtos.POWERON_CHARGER then

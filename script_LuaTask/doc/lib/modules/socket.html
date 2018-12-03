@@ -101,28 +101,58 @@
 	<td class="summary">创建基于UDP的socket对象</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#mt.__index:connect">
-    mt.__index:connect (address, port)
+	<td class="name" nowrap><a href="#mt:connect">
+    mt:connect (address, port)
     </a></td>
 	<td class="summary">连接服务器</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#mt.__index:send">
-    mt.__index:send (data)
+	<td class="name" nowrap><a href="#mt:asyncSelect">
+    mt:asyncSelect (keepAlive, pingreq)
+    </a></td>
+	<td class="summary">异步收发选择器</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#mt:asyncSend">
+    mt:asyncSend (data)
+    </a></td>
+	<td class="summary">异步发送数据</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#mt:asyncRecv">
+    mt:asyncRecv ()
+    </a></td>
+	<td class="summary">异步接收数据</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#mt:send">
+    mt:send (data)
     </a></td>
 	<td class="summary">发送数据</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#mt.__index:recv">
-    mt.__index:recv (<strong  style="color: gray;">[timeout=0]</strong><strong  style="color: gray;">[, msg=nil]</strong>)
+	<td class="name" nowrap><a href="#mt:recv">
+    mt:recv (<strong  style="color: gray;">[timeout=0]</strong><strong  style="color: gray;">[, msg=nil]</strong>)
     </a></td>
 	<td class="summary">接收数据</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#mt.__index:close">
-    mt.__index:close ()
+	<td class="name" nowrap><a href="#mt:close">
+    mt:close ()
     </a></td>
 	<td class="summary">销毁一个socket</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#printStatus">
+    printStatus ()
+    </a></td>
+	<td class="summary">打印所有socket的状态</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setLog">
+    setLog (<strong  style="color: gray;">[sendFlag=nil]</strong><strong  style="color: gray;">[, recvFlag=nil]</strong><strong  style="color: gray;">[, bytes=200]</strong>)
+    </a></td>
+	<td class="summary">设置socket模块的log输出参数</td>
 	</tr>
 </table>
 <h2><a href="#Fields">Fields</a></h2>
@@ -216,9 +246,9 @@ c = socket.tcp(<span class="keyword">true</span>, {caCert=<span class="string">"
 
 </dd>
     <dt>
-    <a name = "mt.__index:connect"></a>
+    <a name = "mt:connect"></a>
     <strong  style="color: red;">
-    mt.__index:connect (address, port)
+    mt:connect (address, port)
     </strong>
     </dt>
     <dd>
@@ -237,10 +267,12 @@ c = socket.tcp(<span class="keyword">true</span>, {caCert=<span class="string">"
     </ul>
 
     <h3>Returns:</h3>
-    <ul>
+    <ol>
         <li>
-        <pre class="example">bool result true - 成功，false - 失败</pre></il>
-    </ul>
+        <pre class="example">bool result true - 成功，false - 失败</pre></li>
+        <li>
+        <pre class="example">string ,id '0' -- '8' ,返回通道ID编号</pre></li>
+    </ol>
 
 
 
@@ -251,9 +283,101 @@ c = socket.tcp(<span class="keyword">true</span>, {caCert=<span class="string">"
 
 </dd>
     <dt>
-    <a name = "mt.__index:send"></a>
+    <a name = "mt:asyncSelect"></a>
     <strong  style="color: red;">
-    mt.__index:send (data)
+    mt:asyncSelect (keepAlive, pingreq)
+    </strong>
+    </dt>
+    <dd>
+    <pre class="example"  style="color: red;">异步收发选择器</pre>
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">keepAlive</span>
+            <span class="types"><span class="type">number</span></span>
+        <pre class="example">服务器和客户端最大通信间隔时间,也叫心跳包最大时间,单位秒</pre>
+        </li>
+        <li><span class="parameter">pingreq</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+        <pre class="example">心跳包的字符串</pre>
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ul>
+        <li>
+        <pre class="example">boole,false 失败，true 表示成功</pre></il>
+    </ul>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "mt:asyncSend"></a>
+    <strong  style="color: red;">
+    mt:asyncSend (data)
+    </strong>
+    </dt>
+    <dd>
+    <pre class="example"  style="color: red;">异步发送数据</pre>
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+        <pre class="example"> 数据</pre>
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ul>
+        <li>
+        <pre class="example">result true - 成功，false - 失败</pre></il>
+    </ul>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <li><pre class="example">c = socket.tcp(); c:connect(); c:asyncSend(<span class="string">"12345678"</span>);</pre></il>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "mt:asyncRecv"></a>
+    <strong  style="color: red;">
+    mt:asyncRecv ()
+    </strong>
+    </dt>
+    <dd>
+    <pre class="example"  style="color: red;">异步接收数据</pre>
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        <pre class="example">nil, 表示没有收到数据</pre></li>
+        <li>
+        <pre class="example">data 如果是UDP协议，返回新的数据包,如果是TCP,返回所有收到的数据,没有数据返回长度为0的空串</pre></li>
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <li><pre class="example">c = socket.tcp(); c:connect()</pre></il>
+        <li><pre class="example">data = c:asyncRecv()</pre></il>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "mt:send"></a>
+    <strong  style="color: red;">
+    mt:send (data)
     </strong>
     </dt>
     <dd>
@@ -283,9 +407,9 @@ c = socket.tcp(<span class="keyword">true</span>, {caCert=<span class="string">"
 
 </dd>
     <dt>
-    <a name = "mt.__index:recv"></a>
+    <a name = "mt:recv"></a>
     <strong  style="color: red;">
-    mt.__index:recv (<strong  style="color: green;">[timeout=0]</strong><strong  style="color: green;">[, msg=nil]</strong>)
+    mt:recv (<strong  style="color: green;">[timeout=0]</strong><strong  style="color: green;">[, msg=nil]</strong>)
     </strong>
     </dt>
     <dd>
@@ -311,9 +435,7 @@ c = socket.tcp(<span class="keyword">true</span>, {caCert=<span class="string">"
         <li>
         <pre class="example">result 数据接收结果，true表示成功，false表示失败</pre></li>
         <li>
-        <pre class="example">data 如果成功的话，返回接收到的数据；超时时返回错误为"timeout"；msg控制退出时返回msg的字符串</pre></li>
-        <li>
-        <pre class="example">param 如果是msg返回的false，则data的值是msg，param的值是msg的参数</pre></li>
+        <pre class="example">data 如果成功的话，返回接收到的数据；超时时返回错误为"timeout"；msg控制退出时返回msg</pre></li>
     </ol>
 
 
@@ -327,9 +449,9 @@ c = socket.tcp(<span class="keyword">true</span>, {caCert=<span class="string">"
 
 </dd>
     <dt>
-    <a name = "mt.__index:close"></a>
+    <a name = "mt:close"></a>
     <strong  style="color: red;">
-    mt.__index:close ()
+    mt:close ()
     </strong>
     </dt>
     <dd>
@@ -348,6 +470,74 @@ c = socket.tcp(<span class="keyword">true</span>, {caCert=<span class="string">"
     <h3>Usage:</h3>
     <ul>
         <li><pre class="example">c = socket.tcp(); c:connect(); c:send(<span class="string">"123"</span>); c:close()</pre></il>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "printStatus"></a>
+    <strong  style="color: red;">
+    printStatus ()
+    </strong>
+    </dt>
+    <dd>
+    <pre class="example"  style="color: red;">打印所有socket的状态</pre>
+
+
+
+    <h3>Returns:</h3>
+    <ul>
+        <li>
+        <pre class="example">无</pre></il>
+    </ul>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <li><pre class="example">socket.printStatus()</pre></il>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "setLog"></a>
+    <strong  style="color: red;">
+    setLog (<strong  style="color: green;">[sendFlag=nil]</strong><strong  style="color: green;">[, recvFlag=nil]</strong><strong  style="color: green;">[, bytes=200]</strong>)
+    </strong>
+    </dt>
+    <dd>
+    <pre class="example"  style="color: red;">设置socket模块的log输出参数</pre>
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">sendFlag</span>
+            <span class="types"><span class="type">bool</span></span>
+         [<em>此参数可选，默认值为：</em> nil]
+        <pre class="example">发送数据的log开关，注意打开此开关后，log输出会对数据收发速度造成一定影响</pre>
+        </li>
+        <li><span class="parameter">recvFlag</span>
+            <span class="types"><span class="type">bool</span></span>
+         [<em>此参数可选，默认值为：</em> nil]
+        <pre class="example">接收数据的log开关，注意打开此开关后，log输出会对数据收发速度造成一定影响</pre>
+        </li>
+        <li><span class="parameter">bytes</span>
+            <span class="types"><span class="type">number</span></span>
+         [<em>此参数可选，默认值为：</em> 200]
+        <pre class="example">log输出每次收发数据的字节数</pre>
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ul>
+        <li>
+        <pre class="example">nil</pre></il>
+    </ul>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <li><pre class="example">socket.setLog(<span class="keyword">true</span>,<span class="keyword">true</span>,<span class="number">500</span>)</pre></il>
     </ul>
 
 </dd>
@@ -378,7 +568,7 @@ c = socket.tcp(<span class="keyword">true</span>, {caCert=<span class="string">"
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2018-11-07 18:25:05 </i>
+<i style="float:right;">Last updated 2018-12-03 12:52:27 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

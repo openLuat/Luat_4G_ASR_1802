@@ -221,8 +221,8 @@ function mt:recv(timeout, msg)
         log.warn('socket.client:recv', 'error', self.error)
         return false
     end
-    if msg and not iSubscribe then
-        iSubscribe = true
+    if msg and not self.iSubscribe then
+        self.iSubscribe = true
         sys.subscribe(msg, function(data)
             table.insert(self.output, data or "")
             if self.wait == "+RECEIVE" then coroutine.resume(self.co, false) end

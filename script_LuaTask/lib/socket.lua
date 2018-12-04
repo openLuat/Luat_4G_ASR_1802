@@ -13,39 +13,16 @@ local sockets = {}
 local SENDSIZE = 11200
 -- 缓冲区最大下标
 local INDEX_MAX = 128
--- 是否打开socket模块的收发数据log
--- log输出每次收发数据的字节数
-local logSendFlag,logRecvFlag,logBytes
--- 是否有socket处于连接状态
-local socketsConnected
 
 --- SOCKET 是否有可用
 -- @return 可用true,不可用false
 socket.isReady = link.isReady
 
-local function updateSocketStatus(id, status)
-    sys.publish("SOCKET" .. id .. "_ACTIVE", status)
-    
-    local connected
-    for _, c in pairs(sockets) do
-        if c.connected then
-            connected = true
-            break
-        end
-    end
-    if connected ~= socketsConnected then
-        socketsConnected = connected
-        sys.publish("SOCKET_ACTIVE", connected)
-    end
-end
-
 local function errorInd(error)
     for _, c in pairs(sockets) do -- IP状态出错时，通知所有已连接的socket
         c.error = error
         c.connected = false
-        if error == 'CLOSED' then
-            updateSocketStatus(c.id, false)
-        end
+        if error == 'CLOSED' then sys.publish("SOCKET_ACTIVE", false, c.id) end
         if c.co and coroutine.status(c.co) == "suspended" then coroutine.resume(c.co, false) end
     end
 end
@@ -151,7 +128,7 @@ function mt:connect(address, port)
     if not coroutine.yield() then return false end
     log.info("socket:connect: connect ok")
     self.connected = true
-    updateSocketStatus(self.id, true)
+    sys.publish("SOCKET_ACTIVE", true, self.id)
     return true, self.id
 end
 
@@ -220,9 +197,7 @@ function mt:send(data)
         log.warn('socket.client:send', 'error', self.error)
         return false
     end
-    if logSendFlag then
-        log.debug("socket.send", "total "..data:len().." bytes", "first "..logBytes.." bytes", data:sub(1,logBytes))
-    end
+    log.debug("socket.send", "total " .. data:len() .. " bytes", "first 30 bytes", data:sub(1, 30))
     for i = 1, string.len(data), SENDSIZE do
         -- 按最大MTU单元对data分包
         self.wait = "SOCKET_SEND"
@@ -292,7 +267,7 @@ function mt:close()
         socketcore.sock_close(self.id)
         self.wait = "SOCKET_CLOSE"
         coroutine.yield()
-        updateSocketStatus(self.id, false)
+        sys.publish("SOCKET_ACTIVE", false, self.id)
     end
     if self.id ~= nil then
         sockets[self.id] = nil
@@ -327,7 +302,7 @@ rtos.on(rtos.MSG_SOCK_CLOSE_IND, function(msg)
     end
     sockets[msg.socket_index].connected = false
     sockets[msg.socket_index].error = 'CLOSED'
-    updateSocketStatus(sockets[msg.socket_index].id, false)
+    sys.publish("SOCKET_ACTIVE", false, sockets[msg.socket_index].id)
     coroutine.resume(sockets[msg.socket_index].co, false)
 end)
 rtos.on(rtos.MSG_SOCK_RECV_IND, function(msg)
@@ -337,9 +312,7 @@ rtos.on(rtos.MSG_SOCK_RECV_IND, function(msg)
     end
     
     local s = socketcore.sock_recv(msg.socket_index, msg.recv_len)
-    if logRecvFlag then
-        log.debug("socket.recv", "total "..msg.recv_len.." bytes", "first "..logBytes.." bytes", data:sub(1,logBytes))
-    end
+    log.debug("socket.recv", "total " .. msg.recv_len .. " bytes", "first " .. 30 .. " bytes", s:sub(1, 30))
     if sockets[msg.socket_index].wait == "+RECEIVE" then
         coroutine.resume(sockets[msg.socket_index].co, true, s)
     else -- 数据进缓冲区，缓冲区溢出采用覆盖模式
@@ -361,14 +334,4 @@ function printStatus()
             log.info('socket.printStatus', 'client', client.id, k, v)
         end
     end
-end
-
---- 设置socket模块的log输出参数
--- @bool[opt=nil] sendFlag，发送数据的log开关，注意打开此开关后，log输出会对数据收发速度造成一定影响
--- @bool[opt=nil] recvFlag，接收数据的log开关，注意打开此开关后，log输出会对数据收发速度造成一定影响
--- @number[opt=200] bytes，log输出每次收发数据的字节数
--- @return nil
--- @usage  socket.setLog(true,true,500)
-function setLog(sendFlag,recvFlag,bytes)
-    logSendFlag,logRecvFlag,logBytes = sendFlag,recvFlag,bytes or 200
 end

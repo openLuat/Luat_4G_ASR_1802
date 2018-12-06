@@ -13,7 +13,8 @@ local sockets = {}
 local SENDSIZE = 11200
 -- 缓冲区最大下标
 local INDEX_MAX = 128
-
+-- 是否有socket正处在链接
+local socketsConnected = false
 --- SOCKET 是否有可用
 -- @return 可用true,不可用false
 socket.isReady = link.isReady
@@ -22,7 +23,8 @@ local function errorInd(error)
     for _, c in pairs(sockets) do -- IP状态出错时，通知所有已连接的socket
         c.error = error
         c.connected = false
-        if error == 'CLOSED' then sys.publish("SOCKET_ACTIVE", false, c.id) end
+        socketsConnected = c.connected or socketsConnected
+        if error == 'CLOSED' then sys.publish("SOCKET_ACTIVE", socketsConnected) end
         if c.co and coroutine.status(c.co) == "suspended" then coroutine.resume(c.co, false) end
     end
 end
@@ -128,7 +130,8 @@ function mt:connect(address, port)
     if not coroutine.yield() then return false end
     log.info("socket:connect: connect ok")
     self.connected = true
-    sys.publish("SOCKET_ACTIVE", true, self.id)
+    socketsConnected = self.connected or socketsConnected
+    sys.publish("SOCKET_ACTIVE", socketsConnected)
     return true, self.id
 end
 
@@ -267,7 +270,8 @@ function mt:close()
         socketcore.sock_close(self.id)
         self.wait = "SOCKET_CLOSE"
         coroutine.yield()
-        sys.publish("SOCKET_ACTIVE", false, self.id)
+        socketsConnected = self.connected or socketsConnected
+        sys.publish("SOCKET_ACTIVE", socketsConnected)
     end
     if self.id ~= nil then
         sockets[self.id] = nil
@@ -302,7 +306,8 @@ rtos.on(rtos.MSG_SOCK_CLOSE_IND, function(msg)
     end
     sockets[msg.socket_index].connected = false
     sockets[msg.socket_index].error = 'CLOSED'
-    sys.publish("SOCKET_ACTIVE", false, sockets[msg.socket_index].id)
+    socketsConnected = sockets[msg.socket_index].connected or socketsConnected
+    sys.publish("SOCKET_ACTIVE", socketsConnected)
     coroutine.resume(sockets[msg.socket_index].co, false)
 end)
 rtos.on(rtos.MSG_SOCK_RECV_IND, function(msg)

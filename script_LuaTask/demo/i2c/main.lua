@@ -23,7 +23,7 @@ require "misc"
 require "errDump"
 
 -- 系統指示灯
-require "default"
+require "i2c_ssd1306_lcd"
 require "ntp"
 ntp.timeSync(1, function()log.info("----------------> AutoTimeSync is Done ! <----------------") end)
 -- 启动系统框架

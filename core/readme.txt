@@ -1,4 +1,4 @@
-Air720系列的模块Flash总空间都为256Mb=32MB
+Air720系列的模块Flash总空间都为128Mb=16MB
 
 目前有2种底层软件，一种支持浮点数和math库，另一种不支持：
 Luat_VXXXX_ASR1802：不支持浮点数和math库

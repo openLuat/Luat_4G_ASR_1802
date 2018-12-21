@@ -1,3 +1,16 @@
+发布时间：2018/12/21 17:23
+修改记录：
+    一、lib脚本修改
+	lib脚本版本号：2.1.2
+	(1)httpv2.lua：支持HTTP1.1的长连接
+	(2)utils.lua：urlEncode()接口支持utf8中文字符串；新增string.utf8Len和string.utf8ToTable两个接口
+    二、demo脚本修改
+	(1)adc：完善adc的demo，增加电压实际值计算的描述
+	(2)i2c：将demo功能更改为驱动ssd1306屏幕
+	(3)整理socket、mqtt、uart的demo目录
+
+
+
 发布时间：2018/12/03 13:50
 修改记录：
     一、lib脚本修改
@@ -7,8 +20,7 @@
 		【问题影响模块】：所有模块
 		【问题出现原因】：2.1.0的script优化了socket性能，误删了一个消息的publish，netLed会用到此消息，所以功能出错
 		【问题解决方式】：恢复消息的publish
-    二、demo脚本修改
-	(1)i2c：将demo功能更改为驱动ssd1306屏幕
+
 
 
 发布时间：2018/12/03 09:00

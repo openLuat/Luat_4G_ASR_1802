@@ -231,7 +231,7 @@ function mt:recv(timeout, msg)
             if self.wait == "+RECEIVE" then coroutine.resume(self.co, false) end
         end)
     end
-    if #self.output ~= 0 then sys.publish(msg) end
+    if msg and #self.output ~= 0 then sys.publish(msg) end
     if #self.input == 0 then
         self.wait = "+RECEIVE"
         if timeout and timeout > 0 then

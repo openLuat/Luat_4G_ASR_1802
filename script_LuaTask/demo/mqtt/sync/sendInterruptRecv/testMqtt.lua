@@ -28,6 +28,9 @@ sys.taskInit(function()
                     elseif data == "timeout" then
                         log.info("这是等待超时主动上报数据的显示!")
                         mqttc:publish(string.format("/device/%s/report", misc.getImei()), "test publish " .. os.time())
+                    else
+                        -- 网络链接被断开
+                        break
                     end
                 end
             end

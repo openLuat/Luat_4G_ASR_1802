@@ -49,36 +49,38 @@ end
 --- 返回utf8编码字符串的长度
 -- @string str,utf8编码的字符串,支持中文
 -- @return number,返回字符串长度
--- @usage local cnt = string.utf8Len("中国"),str = 2
+-- @usage local cnt = string.utf8Len("中国a"),cnt == 3
 function string.utf8Len(str)
-    local len = #str
-    local left = len
-    local cnt = 0
-    local arr = {0, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc}
-    while left ~= 0 do
-        local tmp = string.byte(str, -left)
-        local i = #arr
-        while arr[i] do
-            if tmp >= arr[i] then
-                left = left - i
-                break
-            end
-            i = i - 1
-        end
-        cnt = cnt + 1
-    end
-    return cnt
+    local _, count = string.gsub(str, "[^\128-\193]", "")
+    return count
 end
--- 将一个字符转为urlEncode编码
-local function urlEncodeChar(c)
-    return "%" .. string.format("%02X", string.byte(c))
+
+--- 返回utf8编码字符串的单个utf8字符的table
+-- @string str，utf8编码的字符串,支持中文
+-- @return table,utf8字符串的table
+-- @usage local t = string.utf8ToTable("中国2018")
+function string.utf8ToTable(str)
+    local tab = {}
+    for uchar in string.gfind(str, "[%z\1-\127\194-\244][\128-\191]*") do
+        tab[#tab + 1] = uchar
+    end
+    return tab
 end
 --- 返回字符串的urlEncode编码
--- @string str，要转换编码的字符串
+-- @string str，要转换编码的字符串,支持UTF8编码中文
 -- @return str,urlEncode编码的字符串
--- @usage string.urlEncode("####133")
+-- @usage local str = string.urlEncode("####133") ,str == "%23%23%23%23133"
+-- @usage local str = string.urlEncode("中国2018") , str == "%e4%b8%ad%e5%9b%bd2018"
 function string.urlEncode(str)
-    return string.gsub(string.gsub(string.gsub(tostring(str), "\n", "\r\n"), "([^%w%.%- ])", urlEncodeChar), " ", "+")
+    local t = str:utf8ToTable()
+    for i = 1, #t do
+        if #t[i] == 1 then
+            t[i] = string.gsub(string.gsub(t[i], "([^%w_%*%.%- ])", function(c) return string.format("%%%02X", string.byte(c)) end), " ", "+")
+        else
+            t[i] = string.gsub(t[i], ".", function(c) return string.format("%%%02X", string.byte(c)) end)
+        end
+    end
+    return table.concat(t)
 end
 --- 返回数字的千位符号格式
 -- @number num,数字

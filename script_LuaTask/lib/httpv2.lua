@@ -103,13 +103,14 @@ function request(method, url, timeout, params, data, ctype, basic, headers, cert
         return '502', 'SOCKET_CONN_ERROR'
     end
     if ctype ~= 3 then
-        str = method .. ' ' .. path .. ' HTTP/1.0\r\n' .. str .. '\r\n\r\n' .. (data or "") .. '\r\n'
+        str = method .. ' ' .. path .. ' HTTP/1.1\r\n' .. str .. '\r\n' .. (data or "") .. '\r\n'
+        -- log.info("发送的http报文:", str)
         if not c:send(str) then
             c:close()
             return '426', 'SOCKET_SEND_ERROR'
         end
     else
-        str = method .. ' ' .. path .. ' HTTP/1.1\r\n' .. str .. '\r\n\r\n'
+        str = method .. ' ' .. path .. ' HTTP/1.1\r\n' .. str .. '\r\n'
         if not c:send(str) then
             c:close()
             return '426', 'SOCKET_SEND_ERROR'
@@ -148,7 +149,8 @@ function request(method, url, timeout, params, data, ctype, basic, headers, cert
     log.info('httpv2.response code:', response_code)
     -- 处理headers代码
     for k, v in string.gmatch(s:sub(idx + 1, offset), "(.-):%s*(.-)\r\n") do response_header[k] = v end
-    local len = response_header["Content-Range"] and tonumber(response_header["Content-Range"]:match("/(%d+)")) or tonumber(response_header["Content-Length"])
+    local len = response_header["Content-Range"] and tonumber(response_header["Content-Range"]:match("/(%d+)")) or tonumber(response_header["Content-Length"]) or 2147483648
+    
     s = s:sub((offset or 0) + 1, -1)
     local cnt = #s
     if tonumber(response_code) == 200 or tonumber(response_code) == 206 then

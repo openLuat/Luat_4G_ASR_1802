@@ -9,7 +9,7 @@ module(..., package.seeall)
 
 local i2cid = 0
 
-local i2cslaveaddr = 0x78
+local i2cslaveaddr = 0x3c
 --注意：此处的i2cslaveaddr是7bit地址
 --如果i2c外设手册中给的是8bit地址，需要把8bit地址右移1位，赋值给i2cslaveaddr变量
 --如果i2c外设手册中给的是7bit地址，直接把7bit地址赋值给i2cslaveaddr变量即可

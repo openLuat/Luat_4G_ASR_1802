@@ -14,7 +14,7 @@ local publish = sys.publish
 local req = ril.request
 
 --ready：底层短信功能是否准备就绪
-local smsReady, isn, tlongsms, netReady = true, 255, {}
+local smsReady, isn, tlongsms, netReady, cpinReady,smsUrcReady = false, 255, {}
 local ssub, slen, sformat, smatch = string.sub, string.len, string.format, string.match
 local tsend = {}
 
@@ -369,6 +369,25 @@ local function rsp(cmd, success, response, intermediate)
     end
 end
 
+local function init()
+    if cpinReady and smsUrcReady and netReady then
+        --使用PDU模式发送
+        req("AT+CMGF=0")
+        --设置短信TEXT 模式参数
+        -- req("AT+CSMP=17,167,0,8")
+        --设置AT命令的字符编码是UCS2
+        req('AT+CSCS="UCS2"')
+        --设置存储区为SM
+        req('AT+CPMS="SM"')
+        -- 上报消息CMTI
+        req("AT+CNMI=2,1,0,0,0")
+        --分发短信准备好消息
+        publish("SMS_READY")
+        --清空已读短信
+        req("AT+CMGD=1,3")
+    end
+end
+
 --[[
 函数名：urc
 功能  ：主动上报消息处理函数
@@ -378,20 +397,8 @@ end
 local function urc(data, prefix)
     --短信准备好
     if data == "SMS READY" then
-        --使用PDU模式发送
-        req("AT+CMGF=0")
-        --设置短信TEXT 模式参数
-        -- req("AT+CSMP=17,167,0,8")
-        --设置AT命令的字符编码是UCS2
-        req('AT+CSCS="UCS2"')
-        --设置存储区为SIM
-        req('AT+CPMS="ME"')
-        -- 上报消息CMTI
-        req("AT+CNMI=2,1,0,0,0")
-        --分发短信准备好消息
-        publish("SMS_READY")
-        --清空已读短信
-        req("AT+CMGD=1,3")
+        smsUrcReady = true
+        init()
     -- 存储短信
     elseif prefix == "+CMTI" then
         --分发收到新短信消息
@@ -651,10 +658,20 @@ sys.subscribe("NET_STATE_REGISTERED",
     function()
         if not netReady then
             netReady = true
+            init()
             if smsReady then sndnxt() end
         end
     end
 )
+sys.subscribe("SIM_IND",
+    function(para)
+        if para=="RDY" and not cpinReady then
+            cpinReady = true
+            init()
+        end
+    end
+)
+
 sys.subscribe("LONG_SMS_MERGR_CNF", longsmsmergecnf)
 
 -- 此处为临时AT+CNMI补丁

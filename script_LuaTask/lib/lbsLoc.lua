@@ -80,6 +80,7 @@ local function taskClient(cbFnc,reqAddr,timeout,productKey,host,port,reqTime,req
     log.info("reqStr",reqStr:toHex())
     while true do
         sck = socket.udp()
+        if not sck then cbFnc(6) return end
         if sck:connect(host,port) then
             while true do
                 if sck:send(reqStr) then
@@ -129,7 +130,15 @@ end
 --- 发送根据基站查询经纬度请求（仅支持中国区域的位置查询）
 -- @function cbFnc，用户回调函数，回调函数的调用形式为：
 --              cbFnc(result,lat,lng,addr)
---              result：number类型，0表示成功，1表示网络环境尚未就绪，2表示连接服务器失败，3表示发送数据失败，4表示接收服务器应答超时，5表示服务器返回查询失败；为0时，后面的3个参数才有意义
+--              result：number类型
+--                      0表示成功
+--                      1表示网络环境尚未就绪
+--                      2表示连接服务器失败
+--                      3表示发送数据失败
+--                      4表示接收服务器应答超时
+--                      5表示服务器返回查询失败
+--                      6表示socket已满，创建socket失败
+--                      为0时，后面的3个参数才有意义
 --              lat：string类型或者nil，纬度，整数部分3位，小数部分7位，例如"031.2425864"
 --              lng：string类型或者nil，经度，整数部分3位，小数部分7位，例如"121.4736522"
 -- @bool[opt=nil] reqAddr，此参数无意义，保留

@@ -12,9 +12,9 @@ local host, port = "lbsmqtt.airm2m.com", 1884
 
 -- 测试MQTT的任务代码
 sys.taskInit(function()
-    while not socket.isReady() do sys.wait(1000) end
-    local mqttc = mqtt.client(misc.getImei(), 300, "user", "password")
     while true do
+        while not socket.isReady() do sys.wait(1000) end
+        local mqttc = mqtt.client(misc.getImei(), 300, "user", "password")
         while not mqttc:connect(host, port) do sys.wait(2000) end
         if mqttc:subscribe(string.format("/device/%s/req", misc.getImei())) then
             if mqttc:publish(string.format("/device/%s/report", misc.getImei()), "test publish " .. os.time()) then

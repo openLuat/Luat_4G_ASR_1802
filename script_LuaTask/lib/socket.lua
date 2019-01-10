@@ -54,6 +54,7 @@ local function socket(protocol, cert)
         wait = "",
         connected = false,
         iSubscribe = false,
+        subMessage = nil,
     }
     return setmetatable(o, mt)
 end
@@ -200,8 +201,8 @@ function mt:send(data)
         log.warn('socket.client:send', 'error', self.error)
         return false
     end
-    log.debug("socket.send", "total " .. data:len() .. " bytes", "first 30 bytes", data:sub(1, 30))
-    for i = 1, string.len(data), SENDSIZE do
+    log.debug("socket.send", "total " .. string.len(data or "") .. " bytes", "first 30 bytes", (data or ""):sub(1, 30))
+    for i = 1, string.len(data or ""), SENDSIZE do
         -- 按最大MTU单元对data分包
         self.wait = "SOCKET_SEND"
         socketcore.sock_send(self.id, data:sub(i, i + SENDSIZE - 1))
@@ -225,20 +226,21 @@ function mt:recv(timeout, msg)
         return false
     end
     if msg and not self.iSubscribe then
-        self.iSubscribe = true
-        sys.subscribe(msg, function(data)
-            table.insert(self.output, data or "")
-            if self.wait == "+RECEIVE" then coroutine.resume(self.co, false) end
-        end)
+        self.iSubscribe = msg
+        self.subMessage = function(data)
+            if data then table.insert(self.output, data) end
+            if self.wait == "+RECEIVE" then coroutine.resume(self.co, 0xAA) end
+        end
+        sys.subscribe(msg, self.subMessage)
     end
-    if msg and #self.output ~= 0 then sys.publish(msg) end
+    if msg and #self.output > 0 then sys.publish(msg, false) end
     if #self.input == 0 then
         self.wait = "+RECEIVE"
         if timeout and timeout > 0 then
             local r, s = sys.wait(timeout)
             if r == nil then
                 return false, "timeout"
-            elseif r == false then
+            elseif r == 0xAA then
                 local dat = table.concat(self.output)
                 self.output = {}
                 return false, msg, dat
@@ -264,6 +266,10 @@ end
 -- @usage  c = socket.tcp(); c:connect(); c:send("123"); c:close()
 function mt:close()
     assert(self.co == coroutine.running(), "socket:close: coroutine mismatch")
+    if self.iSubscribe then
+        sys.unsubscribe(self.iSubscribe, self.subMessage)
+        self.iSubscribe = false
+    end
     if self.connected then
         log.info("socket:sock_close", self.id)
         self.connected = false
@@ -293,6 +299,11 @@ local function on_response(msg)
         return
     end
     log.info("socket:on_response:", msg.socket_index, t[msg.id], msg.result)
+    if type(socketcore.sock_destroy) == "function" then
+        if (msg.id == rtos.MSG_SOCK_CONN_CNF and msg.result ~= 0) or msg.id == rtos.MSG_SOCK_CLOSE_CNF then
+            socketcore.sock_destroy(msg.socket_index)
+        end
+    end
     coroutine.resume(sockets[msg.socket_index].co, msg.result == 0)
 end
 
@@ -300,6 +311,7 @@ rtos.on(rtos.MSG_SOCK_CLOSE_CNF, on_response)
 rtos.on(rtos.MSG_SOCK_CONN_CNF, on_response)
 rtos.on(rtos.MSG_SOCK_SEND_CNF, on_response)
 rtos.on(rtos.MSG_SOCK_CLOSE_IND, function(msg)
+    log.info("socket.rtos.MSG_SOCK_CLOSE_IND")
     if not sockets[msg.socket_index] then
         log.warn('close ind on nil socket', msg.socket_index, msg.id)
         return
@@ -308,6 +320,9 @@ rtos.on(rtos.MSG_SOCK_CLOSE_IND, function(msg)
     sockets[msg.socket_index].error = 'CLOSED'
     socketsConnected = sockets[msg.socket_index].connected or socketsConnected
     sys.publish("SOCKET_ACTIVE", socketsConnected)
+    if type(socketcore.sock_destroy) == "function" then
+        socketcore.sock_destroy(msg.socket_index)
+    end
     coroutine.resume(sockets[msg.socket_index].co, false)
 end)
 rtos.on(rtos.MSG_SOCK_RECV_IND, function(msg)

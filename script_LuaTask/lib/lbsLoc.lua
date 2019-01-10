@@ -42,16 +42,15 @@ local function enCellInfo(s)
 end
 
 local function enWifiInfo(tWifi)
-    local ret,k,v = ""
-    if tWifi and #tWifi>0 then
-        ret = string.char(#tWifi)
+    local ret,cnt,k,v = "",0
+    if tWifi then
         for k,v in pairs(tWifi) do
             log.info("lbsLoc.enWifiInfo",k,v)
             ret = ret..pack.pack("Ab",(k:gsub(":","")):fromHex(),v+255)
+            cnt = cnt+1
         end
     end
-    
-    return ret
+    return string.char(cnt)..ret
 end
 
 local function trans(str)
@@ -72,7 +71,7 @@ local function taskClient(cbFnc,reqAddr,timeout,productKey,host,port,reqTime,req
     local reqStr = pack.pack("bAbAAAA",
         productKey:len(),
         productKey,
-	(reqAddr and 2 or 0)+(reqTime and 4 or 0)+8+((reqWifi and #reqWifi~=0) and 16 or 0),
+        (reqAddr and 2 or 0)+(reqTime and 4 or 0)+(reqWifi and 16 or 0),
         "",
         common.numToBcdNum(misc.getImei()),
         enCellInfo(net.getCellInfoExt()),

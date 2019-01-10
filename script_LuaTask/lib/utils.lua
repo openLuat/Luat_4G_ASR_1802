@@ -3,7 +3,7 @@
 -- @author openLuat
 -- @license MIT
 -- @copyright openLuat
--- @release 2017.10.19
+-- @release 2019.01.05
 module(..., package.seeall)
 
 --- 将Lua字符串转成HEX字符串，如"123abc"转为"313233616263"
@@ -66,6 +66,24 @@ function string.utf8ToTable(str)
     end
     return tab
 end
+
+--- 返回字符串的 RFC3986 编码
+-- @string str，要转换编码的字符串,支持UTF8编码中文
+-- @return str, RFC3986 编码的字符串
+-- @usage local str = string.rawurlEncode("####133") ,str == "%23%23%23%23133"
+-- @usage local str = string.rawurlEncode("中国2018") , str == "%e4%b8%ad%e5%9b%bd2018"
+function string.rawurlEncode(str)
+    local t = str:utf8ToTable()
+    for i = 1, #t do
+        if #t[i] == 1 then
+            t[i] = string.gsub(string.gsub(t[i], "([^%w_%~%.%- ])", function(c) return string.format("%%%02X", string.byte(c)) end), " ", "%%20")
+        else
+            t[i] = string.gsub(t[i], ".", function(c) return string.format("%%%02X", string.byte(c)) end)
+        end
+    end
+    return table.concat(t)
+end
+
 --- 返回字符串的urlEncode编码
 -- @string str，要转换编码的字符串,支持UTF8编码中文
 -- @return str,urlEncode编码的字符串
@@ -82,6 +100,37 @@ function string.urlEncode(str)
     end
     return table.concat(t)
 end
+
+--- 返回一个迭代器函数,每次调用函数都会返回hash表的排序后的键值对
+-- @table t, 要排序的hash表
+-- @param f, 自定义排序函数
+-- @return function.
+-- @usage test = {a=1,f=9,d=2,c=8,b=5}
+-- @usage for name,line in pairsByKeys(test) do print(name,line) end
+function table.gsort(t, f)
+    local a = {}
+    for n in pairs(t) do a[#a + 1] = n end
+    table.sort(a, f)
+    local i = 0
+    return function()
+        i = i + 1
+        return a[i], t[a[i]]
+    end
+end
+
+--- table.concat的增强版，支持嵌套字符串数组
+-- @table l,嵌套字符串数组
+-- @return string
+-- @usage  print(table.rconcat({"a",{" nice "}," and ", {{" long "},{" list "}}}))
+function table.rconcat(l)
+    if type(l) ~= "table" then return l end
+    local res = {}
+    for i = 1, #l do
+        res[i] = rconcat(l[i])
+    end
+    return table.concat(res)
+end
+
 --- 返回数字的千位符号格式
 -- @number num,数字
 -- @return string，千位符号的数字字符串

@@ -51,13 +51,10 @@ function request(method, url, timeout, params, data, ctype, basic, headers, cert
         ['Connection'] = 'Keep-alive',
         ["Keep-Alive"] = 'timeout=20',
     }
-    ssl = string.find(rtos.get_version(), 'SSL')
     -- 处理url的协议头和鉴权
     _, offset, https = url:find("^(%a+)://")
     _, idx, auth = url:find("(.-:.-)@", (offset or 0) + 1)
     offset = idx or offset
-    -- 判断SSL支持是否满足
-    if not ssl and https and https:lower() == "https" then return '401', 'SOCKET_SSL_ERROR' end
     -- 对host:port整形
     if url:match("^[^/]+:(%d+)", (offset or 0) + 1) then
         _, offset, host, port = url:find("^([^/]+):(%d+)", (offset or 0) + 1)
@@ -85,6 +82,8 @@ function request(method, url, timeout, params, data, ctype, basic, headers, cert
         headers['Content-Length'] = #data or 0
     elseif ctype == 3 and type(data) == 'string' then
         headers['Content-Length'] = io.fileSize(data) or 0
+    elseif data and type(data) == "string" then
+        headers['Content-Length'] = #data or 0
     end
     -- 处理HTTP Basic Authorization 验证
     if auth then

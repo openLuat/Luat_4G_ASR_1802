@@ -71,7 +71,7 @@ local function taskClient(cbFnc,reqAddr,timeout,productKey,host,port,reqTime,req
     local reqStr = pack.pack("bAbAAAA",
         productKey:len(),
         productKey,
-        (reqAddr and 2 or 0)+(reqTime and 4 or 0)+(reqWifi and 16 or 0),
+        (reqAddr and 2 or 0)+(reqTime and 4 or 0)+8+(reqWifi and 16 or 0),
         "",
         common.numToBcdNum(misc.getImei()),
         enCellInfo(net.getCellInfoExt()),

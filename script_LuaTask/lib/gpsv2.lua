@@ -119,7 +119,7 @@ local function parseNmea(s)
         end
     elseif s:match("VTG") then
         kmHour = s:match("VTG,%d*%.*%d*,%w*,%d*%.*%d*,%w*,%d*%.*%d*,%w*,(%d*%.*%d*)")
-        if fixFlag then sys.publish("GPS_MSG_REPORT") end
+        if fixFlag then sys.publish("GPS_MSG_REPORT", 1) else sys.publish("GPS_MSG_NOREPORT", 0) end
     end
 end
 
@@ -224,14 +224,14 @@ function open(id, baudrate, mode, sleepTm, fnc)
     uart.setup(uartID, uartBaudrate, 8, uart.PAR_NONE, uart.STOP_1)
     if fnc and type(fnc) == "function" then
         fnc()
-    else
-        pmd.ldoset(7, pmd.LDO_VCAM)
-        rtos.sys32k_clk_out(1)
+    -- else
+    --     pmd.ldoset(7, pmd.LDO_VCAM)
+    --     rtos.sys32k_clk_out(1)
     end
     openFlag = true
     local fullPowerMode = false
     ---------------------------------- 初始化GPS任务--------------------------------------------
-    pmd.ldoset(7, pmd.LDO_VIB)
+    -- pmd.ldoset(7, pmd.LDO_VIB)
     -- 获取基站定位坐标
     lbsLoc.request(getlbs, nil, timeout)
     --连接服务器下载星历
@@ -306,8 +306,8 @@ function close(id, fnc)
     if fnc and type(fnc) == "function" then
         fnc()
     else
-        pmd.ldoset(0, pmd.LDO_VCAM)
-        rtos.sys32k_clk_out(0)
+        -- pmd.ldoset(0, pmd.LDO_VCAM)
+        -- rtos.sys32k_clk_out(0)
     end
     pm.sleep("gpsv2.lua")
     sys.timerStopAll(restart)

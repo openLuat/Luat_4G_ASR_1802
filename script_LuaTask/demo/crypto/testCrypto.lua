@@ -100,6 +100,15 @@ local function sha256Test()
     log.info("testCrypto.sha1",crypto.sha256(originStr,slen(originStr)))
 end
 
+local function hmacSha256Test()
+    if type(crypto.hmac_sha256)=="function" then
+        local originStr = "asdasdsadasweqcdsjghjvcb"
+        local signKey = "12345689012345"
+        log.info("testCrypto.hmac_sha256",crypto.hmac_sha256(originStr,signKey))
+    end
+end
+
+
 --- crc算法测试
 -- @return 无
 -- @usage crcTest()
@@ -114,7 +123,8 @@ local function crcTest()
     log.info("testCrypto.crc16_CCITT",string.format("%04X",crypto.crc16("CCITT",originStr)))
     log.info("testCrypto.crc16_CCITT-FALSE",string.format("%04X",crypto.crc16("CCITT-FALSE",originStr)))
     log.info("testCrypto.crc16_XMODEM",string.format("%04X",crypto.crc16("XMODEM",originStr)))
-    log.info("testCrypto.crc16_DNP",string.format("%04X",crypto.crc16("DNP",originStr)))   
+    log.info("testCrypto.crc16_DNP",string.format("%04X",crypto.crc16("DNP",originStr)))  
+    log.info("testCrypto.USER-DEFINED",string.format("%04X",crypto.crc16("USER-DEFINED",originStr,0x8005,0x0000,0x0000,0,0)))     
 --  log.info("testCrypto.crc16_modbus",string.format("%04X",crypto.crc16_modbus(originStr,slen(originStr))))
 --  log.info("testCrypto.crc32",string.format("%08X",crypto.crc32(originStr,slen(originStr))))
 end
@@ -313,19 +323,20 @@ end
 --- 算法测试入口
 -- @return 
 local function cryptoTest()
-	print("test start")
-	hmacMd5Test()
-	md5Test()
+    print("test start")
+    hmacMd5Test()
+    md5Test()
     hmacSha1Test() 
     flowMd5Test()
-	base64Test()
-	crcTest()
-	aesTest()
-	sha1Test()
-	sha256Test()
+    base64Test()
+    crcTest()
+    aesTest()
+    sha1Test()
+    sha256Test()
+    hmacSha256Test()
  -- xxtea 需要lod打开支持
  -- xxteaTest()
-	print("test end")
+    print("test end")
 end
 
 sys.timerStart(cryptoTest,2000)

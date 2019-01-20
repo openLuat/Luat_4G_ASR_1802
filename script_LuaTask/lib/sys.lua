@@ -10,7 +10,7 @@ require "patch"
 module(..., package.seeall)
 
 -- lib脚本版本号，只要lib中的任何一个脚本做了修改，都需要更新此版本号
-SCRIPT_LIB_VER = "2.1.4"
+SCRIPT_LIB_VER = "2.1.5"
 
 -- TaskID最大值
 local TASK_TIMER_ID_MAX = 0x1FFFFFFF
@@ -55,6 +55,8 @@ end
 function wait(ms)
     -- 参数检测，参数不能为负值
     assert(ms > 0, "The wait time cannot be negative!")
+    --4G底层不支持小于5ms的定时器
+    if ms < 5 then ms = 5 end
     -- 选一个未使用的定时器ID给该任务线程
     if taskTimerId >= TASK_TIMER_ID_MAX then taskTimerId = 0 end
     taskTimerId = taskTimerId + 1
@@ -120,7 +122,7 @@ function init(mode, lprfnc)
     -- 用户应用脚本中必须定义PROJECT和VERSION两个全局变量，否则会死机重启，如何定义请参考各个demo中的main.lua
     assert(PROJECT and PROJECT ~= "" and VERSION and VERSION ~= "", "Undefine PROJECT or VERSION")
     collectgarbage("setpause", 80)
-    
+
     -- 设置AT命令的虚拟串口
     uart.setup(uart.ATC, 0, 0, uart.PAR_NONE, uart.STOP_1)
     log.info("poweron reason:", rtos.poweron_reason(), PROJECT, VERSION, SCRIPT_LIB_VER, rtos.get_version())
@@ -203,6 +205,8 @@ function timerStart(fnc, ms, ...)
     --回调函数和时长检测
     assert(fnc ~= nil, "sys.timerStart(first param) is nil !")
     assert(ms > 0, "sys.timerStart(Second parameter) is <= zero !")
+    --4G底层不支持小于5ms的定时器
+    if ms < 5 then ms = 5 end
     -- 关闭完全相同的定时器
     if arg.n == 0 then
         timerStop(fnc)
@@ -235,7 +239,7 @@ end
 -- @return number 定时器ID，如果失败，返回nil
 function timerLoopStart(fnc, ms, ...)
     local tid = timerStart(fnc, ms, unpack(arg))
-    if tid then loop[tid] = ms end
+    if tid then loop[tid] = (ms<5 and 5 or ms) end
     return tid
 end
 

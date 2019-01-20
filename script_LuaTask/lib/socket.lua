@@ -20,12 +20,23 @@ local socketsConnected = false
 socket.isReady = link.isReady
 
 local function errorInd(error)
+    local coSuspended = {}
+    
     for _, c in pairs(sockets) do -- IP状态出错时，通知所有已连接的socket
         c.error = error
         c.connected = false
         socketsConnected = c.connected or socketsConnected
         if error == 'CLOSED' then sys.publish("SOCKET_ACTIVE", socketsConnected) end
-        if c.co and coroutine.status(c.co) == "suspended" then coroutine.resume(c.co, false) end
+        if c.co and coroutine.status(c.co) == "suspended" then
+	--coroutine.resume(c.co, false)
+	table.insert(coSuspended,c.co)
+	end
+    end
+    
+    for k, v in pairs(coSuspended) do
+        if v and coroutine.status(v) == "suspended" then
+            coroutine.resume(v, false)
+        end
     end
 end
 
@@ -284,7 +295,7 @@ function mt:close()
     end
 end
 
-local function on_response(msg)
+local function on_response(msg)    
     local t = {
         [rtos.MSG_SOCK_CLOSE_CNF] = 'SOCKET_CLOSE',
         [rtos.MSG_SOCK_SEND_CNF] = 'SOCKET_SEND',

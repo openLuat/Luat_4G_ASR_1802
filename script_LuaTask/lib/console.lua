@@ -26,7 +26,7 @@ local function write(s)
 end
 
 local function on_wait_event_timeout()
-    coroutine.resume(console_task, "TIEMOUT")
+    coroutine.resume(console_task, "TIMEOUT")
 end
 
 local function wait_event(event, timeout)

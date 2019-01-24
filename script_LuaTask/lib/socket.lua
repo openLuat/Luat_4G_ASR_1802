@@ -24,13 +24,16 @@ local function errorInd(error)
     
     for _, c in pairs(sockets) do -- IP状态出错时，通知所有已连接的socket
         c.error = error
-        c.connected = false
-        socketsConnected = c.connected or socketsConnected
-        if error == 'CLOSED' then sys.publish("SOCKET_ACTIVE", socketsConnected) end
+        --不能打开如下3行代码，IP出错时，会通知每个socket，socket会主动close
+        --如果设置了connected=false，则主动close时，直接退出，不会执行close动作，导致core中的socket资源没释放
+        --会引发core中socket耗尽以及socket id重复的问题
+        --c.connected = false
+        --socketsConnected = c.connected or socketsConnected
+        --if error == 'CLOSED' then sys.publish("SOCKET_ACTIVE", socketsConnected) end
         if c.co and coroutine.status(c.co) == "suspended" then
-	--coroutine.resume(c.co, false)
-	table.insert(coSuspended,c.co)
-	end
+            --coroutine.resume(c.co, false)
+            table.insert(coSuspended,c.co)
+        end
     end
     
     for k, v in pairs(coSuspended) do
@@ -302,7 +305,7 @@ local function on_response(msg)
         [rtos.MSG_SOCK_CONN_CNF] = 'SOCKET_CONNECT',
     }
     if not sockets[msg.socket_index] then
-        log.warn('response on nil socket', msg.socket_index, msg.id)
+        log.warn('response on nil socket', msg.socket_index, msg.id, msg.result)
         return
     end
     if sockets[msg.socket_index].wait ~= t[msg.id] then

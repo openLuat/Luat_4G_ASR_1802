@@ -121,11 +121,16 @@ local function creg(data)
 	--已注册并且lac或ci发生了变化
 	if state == "REGISTERED" then
 		p2, p3 = string.match(data, "\"(%x+)\",\"(%x+)\"")
-		if lac ~= p2 or ci ~= p3 then
+		if p2 and p3 and (lac ~= p2 or ci ~= p3) then
 			lac = p2
 			ci = p3
 			--产生一个内部消息NET_CELL_CHANGED，表示lac或ci发生了变化
 			publish("NET_CELL_CHANGED")
+			cellinfo[1].mcc = tonumber(sim.getMcc(),16)
+			cellinfo[1].mnc = tonumber(sim.getMnc(),16)
+			cellinfo[1].lac = tonumber(lac,16)
+			cellinfo[1].ci = tonumber(ci,16)
+			cellinfo[1].rssi = 28
 		end
 	end
 end
@@ -518,7 +523,7 @@ function getCellInfoExt()
 	local i, ret = 1, ""
 	for i = 1, cellinfo.cnt do
 		if cellinfo[i] and cellinfo[i].mcc and cellinfo[i].mnc and cellinfo[i].lac and cellinfo[i].lac ~= 0 and cellinfo[i].ci and cellinfo[i].ci ~= 0 then
-			ret = ret .. string.format("%x",cellinfo[i].mcc) .. "." .. cellinfo[i].mnc .. "." .. cellinfo[i].lac .. "." .. cellinfo[i].ci .. "." .. cellinfo[i].rssi .. ";"
+			ret = ret .. string.format("%x",cellinfo[i].mcc) .. "." .. string.format("%x",cellinfo[i].mnc) .. "." .. cellinfo[i].lac .. "." .. cellinfo[i].ci .. "." .. cellinfo[i].rssi .. ";"
 		end
 	end
 	return ret

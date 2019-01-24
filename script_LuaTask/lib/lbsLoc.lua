@@ -110,6 +110,7 @@ local function taskClient(cbFnc,reqAddr,timeout,productKey,host,port,reqTime,req
                         sck:close()
                         retryCnt = retryCnt+1
                         if retryCnt>=3 then return cbFnc(4) end
+                        break
                     end
                 else
                     sck:close()

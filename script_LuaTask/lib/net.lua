@@ -43,30 +43,6 @@ local lac, ci, rssi = "", "", 0
 --cellinfo：当前小区和临近小区信息表
 --multicellcb：获取多小区的回调函数
 local cellinfo, multicellcb = {}
---注册标志参数，creg3：true为没注册，为false为注册成功
---local creg3
---[[
-函数名：checkCRSM
-功能：如果注册被拒绝，运行此函数，先判断是否取得imsi号，再判断是否是中国移动卡
-如果确定是中国移动卡，则进行SIM卡限制访问
-参数：
-返回值：
-]]
---[[
-local function checkCRSM()
-	local imsi = sim.getImsi()
-	if imsi and imsi ~= "" then
-		if string.sub(imsi, 1, 3) == "460" then
-			local mnc = string.sub(imsi, 4, 5)
-			if (mnc == "00" or mnc == "02" or mnc == "04" or mnc == "07") and creg3 then
-				ril.request("AT+CRSM=176,28539,0,0,12")
-			end
-		end
-	else
-		sys.timerStart(checkCRSM, 5000)
-	end
-end
-]]
 
 --[[
 函数名：creg
@@ -75,64 +51,50 @@ end
 返回值：无
 ]]
 local function creg(data)
-	local p1, s
-	local prefix = (netMode == NetMode_LTE) and "+CEREG: " or (netMode == NetMode_noNet and "+CREG: " or "+CGREG: ")
+    local p1, s
+    local prefix = (netMode == NetMode_LTE) and "+CEREG: " or (netMode == NetMode_noNet and "+CREG: " or "+CGREG: ")
 
-	if netMode == NetMode_LTE then--4G 根据CEREG判断网络注册状态
-		if not string.find(data, "+CEREG") then return end        
-	elseif netMode == NetMode_noNet then--无网络 根据CREG判断网络注册状态
-		if not string.find(data, "+CREG") then return end        
-	else--2/3/2.5G 根据CGREG判断网络注册状态
-		if not string.find(data, "+CGREG") then return end        
-	end
-	--获取注册状态
-	_, _, p1 = string.find(data, prefix .. "%d,(%d+)")
-	if p1 == nil then
-		_, _, p1 = string.find(data, prefix .. "(%d+)")
-		if p1 == nil then
-			return
-		end
-	end
-	--creg3 = false
-	--已注册
-	if p1 == "1" or p1 == "5" then
-		s = "REGISTERED"
-	--未注册
-	else
-		--[[
-		if p1 == "3" then
-			creg3 = true
-			checkCRSM()
-		end
-		]]
-		s = "UNREGISTER"
-	end
-	--注册状态发生了改变
-	if s ~= state then
-		--临近小区查询处理
-		if s == "REGISTERED" then
-			--产生一个内部消息NET_STATE_CHANGED，表示GSM网络注册状态发生变化
-			publish("NET_STATE_REGISTERED")
-			cengQueryPoll()
-		end
-		state = s
-	
-	end
-	--已注册并且lac或ci发生了变化
-	if state == "REGISTERED" then
-		p2, p3 = string.match(data, "\"(%x+)\",\"(%x+)\"")
-		if p2 and p3 and (lac ~= p2 or ci ~= p3) then
-			lac = p2
-			ci = p3
-			--产生一个内部消息NET_CELL_CHANGED，表示lac或ci发生了变化
-			publish("NET_CELL_CHANGED")
-			cellinfo[1].mcc = tonumber(sim.getMcc(),16)
-			cellinfo[1].mnc = tonumber(sim.getMnc(),16)
-			cellinfo[1].lac = tonumber(lac,16)
-			cellinfo[1].ci = tonumber(ci,16)
-			cellinfo[1].rssi = 28
-		end
-	end
+    if netMode == NetMode_LTE then--4G 根据CEREG判断网络注册状态
+        if not data:match("+CEREG") then return end        
+    elseif netMode == NetMode_noNet then--无网络 根据CREG判断网络注册状态
+        if not data:match("+CREG") then return end        
+    else--2/3/2.5G 根据CGREG判断网络注册状态
+        if not data:match("+CGREG") then return end        
+    end
+    --获取注册状态
+    _, _, p1 = data:find(prefix .. "%d,(%d+)")
+    if p1 == nil then
+        _, _, p1 = data:find(prefix .. "(%d+)")
+        if p1 == nil then return end
+    end
+
+    --设置注册状态
+    s = (p1=="1" or p1=="5") and "REGISTERED" or "UNREGISTER"
+    --注册状态发生了改变
+    if s ~= state then
+        --临近小区查询处理
+        if s == "REGISTERED" then
+            --产生一个内部消息NET_STATE_CHANGED，表示GSM网络注册状态发生变化
+            publish("NET_STATE_REGISTERED")
+            cengQueryPoll()
+        end
+        state = s
+    end
+    --已注册并且lac或ci发生了变化
+    if state == "REGISTERED" then
+        p2, p3 = data:match("\"(%x+)\",\"(%x+)\"")
+        if p2 and p3 and (lac ~= p2 or ci ~= p3) then
+            lac = p2
+            ci = p3
+            --产生一个内部消息NET_CELL_CHANGED，表示lac或ci发生了变化
+            publish("NET_CELL_CHANGED")
+            cellinfo[1].mcc = tonumber(sim.getMcc(),16)
+            cellinfo[1].mnc = tonumber(sim.getMnc(),16)
+            cellinfo[1].lac = tonumber(lac,16)
+            cellinfo[1].ci = tonumber(ci,16)
+            cellinfo[1].rssi = 28
+        end
+    end
 end
 
 --[[
@@ -142,16 +104,16 @@ end
 返回值：无
 ]]
 local function resetCellInfo()
-	local i
-	cellinfo.cnt = 11 --最大个数
-	for i = 1, cellinfo.cnt do
-		cellinfo[i] = {}
-		cellinfo[i].mcc, cellinfo[i].mnc = nil
-		cellinfo[i].lac = 0
-		cellinfo[i].ci = 0
-		cellinfo[i].rssi = 0
-		cellinfo[i].ta = 0
-	end
+    local i
+    cellinfo.cnt = 11 --最大个数
+    for i = 1, cellinfo.cnt do
+        cellinfo[i] = {}
+        cellinfo[i].mcc, cellinfo[i].mnc = nil
+        cellinfo[i].lac = 0
+        cellinfo[i].ci = 0
+        cellinfo[i].rssi = 0
+        cellinfo[i].ta = 0
+    end
 end
 
 --[[
@@ -163,7 +125,7 @@ data：当前小区和临近小区信息字符串，例如下面中的每一行�
 返回值：无
 ]]
 local function eemLteSvc(data)
-	if string.find(data, "%+EEMLTESVC:%d+, %d+, %d+, .+") then
+	if data:match("%+EEMLTESVC:%d+, %d+, %d+, .+") then
 		local mcc,mnc,lac,ci,rssi
 		local svcData = string.match(data, "%+EEMLTESVC:(.+)")
 
@@ -330,30 +292,6 @@ local function eemUMTSInfoSvc(data)
 		end
 	end
 end
--- crsm更新计数
---local crsmUpdCnt = 0
-
--- 更新FPLMN的应答处理
--- @string cmd  ,此应答对应的AT命令
--- @bool success ,AT命令执行结果，true或者false
--- @string response ,AT命令的应答中的执行结果字符串
--- @string intermediate ,AT命令的应答中的中间信息
--- @return 无
---[[
-function crsmResponse(cmd, success, response, intermediate)
-	log.debug("net.crsmResponse", success)
-	if success then
-		sys.restart("net.crsmResponse suc")
-	else
-		crsmUpdCnt = crsmUpdCnt + 1
-		if crsmUpdCnt >= 3 then
-			sys.restart("net.crsmResponse tmout")
-		else
-			ril.request("AT+CRSM=214,28539,0,0,12,\"64f01064f03064f002fffff\"", nil, crsmResponse)
-		end
-	end
-end
-]]
 
 --[[
 函数名：UpdNetMode
@@ -420,11 +358,6 @@ local function neturc(data, prefix)
 		eemGsmInfoSvc(data)
 	elseif prefix == "+EEMGINFONC" then
 		eemGsmNCInfoSvc(data)
-	--[[elseif prefix == "+CRSM" then
-		local str = string.lower(data)
-		if string.match(str, "64f000") or string.match(str, "64f020") or string.match(str, "64f040") or string.match(str, "64f070") then
-			ril.request("AT+CRSM=214,28539,0,0,12,\"64f01064f03064f002fffff\"", nil, crsmResponse)
-		end]]
 	elseif prefix == "^MODE" then
 		UpdNetMode(data)
 	end

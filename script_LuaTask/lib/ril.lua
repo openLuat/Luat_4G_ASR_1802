@@ -228,7 +228,8 @@ data：收到的数据
 返回值：无
 ]]
 local function procatc(data)
-    log.info("ril.proatc", data)
+    --if data:match("^%+EEMLTEINTER") or data:match("^%+EEMLTEINTRA") or data:match("^%+EEMUMTSINTER") or data:match("^%+EEMUMTSINTRA") then return end
+    --log.info("ril.proatc", data)
     --如果命令的应答是多行字符串格式
     if interdata and cmdtype == MLINE then
         --不出现OK\r\n，则认为应答还未结束
@@ -254,6 +255,12 @@ local function procatc(data)
     if data == "" then
         return
     end
+    
+    if data:match("^%+EEMLTEINTER") or data:match("^%+EEMLTEINTRA") or data:match("^%+EEMUMTSINTER") or data:match("^%+EEMUMTSINTRA") then
+        return
+    end
+    log.info("ril.proatc", data)
+    
     --当前无命令在执行则判定为urc
     if currcmd == nil then
         urc(data)

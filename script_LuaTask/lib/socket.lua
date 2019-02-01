@@ -38,13 +38,13 @@ local function errorInd(error)
     
     for k, v in pairs(coSuspended) do
         if v and coroutine.status(v) == "suspended" then
-            coroutine.resume(v, false)
+            coroutine.resume(v, false, error)
         end
     end
 end
 
 sys.subscribe("IP_ERROR_IND", function()errorInd('IP_ERROR_IND') end)
-sys.subscribe('IP_SHUT_IND', function()errorInd('CLOSED') end)
+--sys.subscribe('IP_SHUT_IND', function()errorInd('CLOSED') end)
 
 -- 创建socket函数
 local mt = {}
@@ -103,10 +103,11 @@ end
 --- 连接服务器
 -- @string address 服务器地址，支持ip和域名
 -- @param port string或者number类型，服务器端口
+-- @number[opt=120] timeout 可选参数，连接超时时间，单位秒
 -- @return bool result true - 成功，false - 失败
 -- @return string ,id '0' -- '8' ,返回通道ID编号
 -- @usage  c = socket.tcp(); c:connect();
-function mt:connect(address, port)
+function mt:connect(address, port, timeout)
     assert(self.co == coroutine.running(), "socket:connect: coroutine mismatch")
     
     if not link.isReady() then
@@ -136,13 +137,16 @@ function mt:connect(address, port)
         self.id = socketcore.sock_conn(1, address, port)
     end
     if not self.id then
-        log.info("socket:connect: core sock conn error")
+        log.info("socket:connect: core sock conn error",self.protocol, address, port, self.cert)
         return false
     end
-    log.info("socket:connect-coreid,prot,addr,port,cert", self.id, self.protocol, address, port, self.cert)
+    log.info("socket:connect-coreid,prot,addr,port,cert,timeout", self.id, self.protocol, address, port, self.cert, timeout or 120)
     sockets[self.id] = self
     self.wait = "SOCKET_CONNECT"
-    if not coroutine.yield() then return false end
+    self.timerId = sys.timerStart(coroutine.resume, (timeout or 120)*1000, self.co, false, "TIMEOUT")
+    local result,reason = coroutine.yield()
+    if self.timerId and reason~="TIMEOUT" then sys.timerStop(self.timerId) end 
+    if not result then log.info("socket:connect: connect fail", reason) return false end
     log.info("socket:connect: connect ok")
     self.connected = true
     socketsConnected = self.connected or socketsConnected
@@ -207,9 +211,10 @@ end
 
 --- 发送数据
 -- @string data 数据
+-- @number[opt=120] timeout 可选参数，发送超时时间，单位秒
 -- @return result true - 成功，false - 失败
 -- @usage  c = socket.tcp(); c:connect(); c:send("12345678");
-function mt:send(data)
+function mt:send(data,timeout)
     assert(self.co == coroutine.running(), "socket:recv: coroutine mismatch")
     if self.error then
         log.warn('socket.client:send', 'error', self.error)
@@ -220,7 +225,10 @@ function mt:send(data)
         -- 按最大MTU单元对data分包
         self.wait = "SOCKET_SEND"
         socketcore.sock_send(self.id, data:sub(i, i + SENDSIZE - 1))
-        if not coroutine.yield() then return false end
+        self.timerId = sys.timerStart(coroutine.resume, (timeout or 120)*1000, self.co, false, "TIMEOUT")
+        local result,reason = coroutine.yield()
+        if self.timerId and reason~="TIMEOUT" then sys.timerStop(self.timerId) end 
+        if not result then log.info("socket:send", "send fail", reason) return false end
     end
     return true
 end
@@ -284,28 +292,35 @@ function mt:close()
         sys.unsubscribe(self.iSubscribe, self.subMessage)
         self.iSubscribe = false
     end
-    if self.connected then
+    --此处不要再判断状态，否则在连接超时失败时，conneted状态仍然是未连接，会导致无法close
+    --if self.connected then
         log.info("socket:sock_close", self.id)
+        local result,reason
         self.connected = false
-        socketcore.sock_close(self.id)
-        self.wait = "SOCKET_CLOSE"
-        coroutine.yield()
+        if self.id then
+            socketcore.sock_close(self.id)
+            self.wait = "SOCKET_CLOSE"
+            while true do
+                result,reason = coroutine.yield()
+                if reason=="RESPONSE" then break end
+            end
+        end
         socketsConnected = self.connected or socketsConnected
         sys.publish("SOCKET_ACTIVE", socketsConnected)
-    end
+    --end
     if self.id ~= nil then
         sockets[self.id] = nil
     end
 end
 
-local function on_response(msg)    
+local function on_response(msg)
     local t = {
         [rtos.MSG_SOCK_CLOSE_CNF] = 'SOCKET_CLOSE',
         [rtos.MSG_SOCK_SEND_CNF] = 'SOCKET_SEND',
         [rtos.MSG_SOCK_CONN_CNF] = 'SOCKET_CONNECT',
     }
     if not sockets[msg.socket_index] then
-        log.warn('response on nil socket', msg.socket_index, msg.id, msg.result)
+        log.warn('response on nil socket', msg.socket_index, t[msg.id], msg.result)
         return
     end
     if sockets[msg.socket_index].wait ~= t[msg.id] then
@@ -318,7 +333,7 @@ local function on_response(msg)
             socketcore.sock_destroy(msg.socket_index)
         end
     end
-    coroutine.resume(sockets[msg.socket_index].co, msg.result == 0)
+    coroutine.resume(sockets[msg.socket_index].co, msg.result == 0, "RESPONSE")
 end
 
 rtos.on(rtos.MSG_SOCK_CLOSE_CNF, on_response)
@@ -337,7 +352,7 @@ rtos.on(rtos.MSG_SOCK_CLOSE_IND, function(msg)
     if type(socketcore.sock_destroy) == "function" then
         socketcore.sock_destroy(msg.socket_index)
     end
-    coroutine.resume(sockets[msg.socket_index].co, false)
+    coroutine.resume(sockets[msg.socket_index].co, false, "CLOSED")
 end)
 rtos.on(rtos.MSG_SOCK_RECV_IND, function(msg)
     if not sockets[msg.socket_index] then

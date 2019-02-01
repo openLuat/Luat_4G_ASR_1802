@@ -47,7 +47,9 @@
   <li><a href="../modules/console.html">console</a></li>
   <li><a href="../modules/errDump.html">errDump</a></li>
   <li><strong>gps</strong></li>
+  <li><a href="../modules/gpsv2.html">gpsv2</a></li>
   <li><a href="../modules/http.html">http</a></li>
+  <li><a href="../modules/httpv2.html">httpv2</a></li>
   <li><a href="../modules/lbsLoc.html">lbsLoc</a></li>
   <li><a href="../modules/led.html">led</a></li>
   <li><a href="../modules/link.html">link</a></li>
@@ -62,7 +64,6 @@
   <li><a href="../modules/pb.html">pb</a></li>
   <li><a href="../modules/pins.html">pins</a></li>
   <li><a href="../modules/pm.html">pm</a></li>
-  <li><a href="../modules/record.html">record</a></li>
   <li><a href="../modules/ril.html">ril</a></li>
   <li><a href="../modules/sim.html">sim</a></li>
   <li><a href="../modules/sms.html">sms</a></li>
@@ -163,6 +164,18 @@
 	<td class="summary">设置GPS模块的运行模式.</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#setNemaReportFreq">
+    setNemaReportFreq (<strong  style="color: gray;">[rmc=1]</strong><strong  style="color: gray;">[, gga=1]</strong><strong  style="color: gray;">[, gsa=1]</strong><strong  style="color: gray;">[, gsv=1]</strong><strong  style="color: gray;">[, vtg=1]</strong><strong  style="color: gray;">[, gll=0]</strong>)
+    </a></td>
+	<td class="summary">设置NEMA语句的输出频率.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setLocationFilter">
+    setLocationFilter (<strong  style="color: gray;">[seconds=0]</strong>)
+    </a></td>
+	<td class="summary">设置GPS定位成功后经纬度的过滤时间.</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#isOpen">
     isOpen ()
     </a></td>
@@ -176,7 +189,7 @@
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#getLocation">
-    getLocation ()
+    getLocation (<strong  style="color: gray;">[typ=nil]</strong>)
     </a></td>
 	<td class="summary">获取度格式的经纬度信息</td>
 	</tr>
@@ -191,6 +204,12 @@
     getSpeed ()
     </a></td>
 	<td class="summary">获取速度</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#getOrgSpeed">
+    getOrgSpeed ()
+    </a></td>
+	<td class="summary">获取原始速度,字符串带浮点</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#getCourse">
@@ -688,6 +707,97 @@
 
 </dd>
     <dt>
+    <a name = "setNemaReportFreq"></a>
+    <strong  style="color: red;">
+    setNemaReportFreq (<strong  style="color: green;">[rmc=1]</strong><strong  style="color: green;">[, gga=1]</strong><strong  style="color: green;">[, gsa=1]</strong><strong  style="color: green;">[, gsv=1]</strong><strong  style="color: green;">[, vtg=1]</strong><strong  style="color: green;">[, gll=0]</strong>)
+    </strong>
+    </dt>
+    <dd>
+    <pre class="example"  style="color: red;">设置NEMA语句的输出频率.</pre>
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">rmc</span>
+            <span class="types"><span class="type">number</span></span>
+         [<em>此参数可选，默认值为：</em> 1]
+        <pre class="example">单位秒，RMC语句输出频率，取值范围0到10之间的整数，0表示不输出</pre>
+        </li>
+        <li><span class="parameter">gga</span>
+            <span class="types"><span class="type">number</span></span>
+         [<em>此参数可选，默认值为：</em> 1]
+        <pre class="example">单位秒，GGA语句输出频率，取值范围0到10之间的整数，0表示不输出</pre>
+        </li>
+        <li><span class="parameter">gsa</span>
+            <span class="types"><span class="type">number</span></span>
+         [<em>此参数可选，默认值为：</em> 1]
+        <pre class="example">单位秒，GSA语句输出频率，取值范围0到10之间的整数，0表示不输出</pre>
+        </li>
+        <li><span class="parameter">gsv</span>
+            <span class="types"><span class="type">number</span></span>
+         [<em>此参数可选，默认值为：</em> 1]
+        <pre class="example">单位秒，GSV语句输出频率，取值范围0到10之间的整数，0表示不输出</pre>
+        </li>
+        <li><span class="parameter">vtg</span>
+            <span class="types"><span class="type">number</span></span>
+         [<em>此参数可选，默认值为：</em> 1]
+        <pre class="example">单位秒，VTG语句输出频率，取值范围0到10之间的整数，0表示不输出</pre>
+        </li>
+        <li><span class="parameter">gll</span>
+            <span class="types"><span class="type">number</span></span>
+         [<em>此参数可选，默认值为：</em> 0]
+        <pre class="example">单位秒，GLL语句输出频率，取值范围0到10之间的整数，0表示不输出</pre>
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ul>
+        <li>
+        <pre class="example">nil</pre></il>
+    </ul>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <li><pre class="example">gps.setNemaReportFreq(<span class="number">5</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>)</pre></il>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "setLocationFilter"></a>
+    <strong  style="color: red;">
+    setLocationFilter (<strong  style="color: green;">[seconds=0]</strong>)
+    </strong>
+    </dt>
+    <dd>
+    <pre class="example"  style="color: red;">设置GPS定位成功后经纬度的过滤时间.</pre>
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">seconds</span>
+            <span class="types"><span class="type">number</span></span>
+         [<em>此参数可选，默认值为：</em> 0]
+        <pre class="example">单位秒，GPS定位成功后，丢弃前seconds秒的位置信息</pre>
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ul>
+        <li>
+        <pre class="example">nil</pre></il>
+    </ul>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <li><pre class="example">gps.setLocationFilter(<span class="number">2</span>)</pre></il>
+    </ul>
+
+</dd>
+    <dt>
     <a name = "isOpen"></a>
     <strong  style="color: red;">
     isOpen ()
@@ -740,19 +850,28 @@
     <dt>
     <a name = "getLocation"></a>
     <strong  style="color: red;">
-    getLocation ()
+    getLocation (<strong  style="color: green;">[typ=nil]</strong>)
     </strong>
     </dt>
     <dd>
     <pre class="example"  style="color: red;">获取度格式的经纬度信息</pre>
 
 
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">typ</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         [<em>此参数可选，默认值为：</em> nil]
+        <pre class="example">返回的经纬度格式，typ为"DEGREE_MINUTE"时表示返回度分格式，其余表示返回度格式</pre>
+        </li>
+    </ul>
 
     <h3>Returns:</h3>
     <ul>
         <li>
         <pre class="example"> table location
- {lngType="E",lng="121.123456",latType="N",lat="31.123456"}
+ 例如typ为"DEGREE_MINUTE"时返回{lngType="E",lng="12128.44954",latType="N",lat="3114.50931"}
+ 例如typ不是"DEGREE_MINUTE"时返回{lngType="E",lng="121.123456",latType="N",lat="31.123456"}
  lngType：string类型，表示经度类型，取值"E"，"W"
  lng：string类型，表示度格式的经度值，无效时为""
  latType：string类型，表示纬度类型，取值"N"，"S"
@@ -816,6 +935,31 @@
     <h3>Usage:</h3>
     <ul>
         <li><pre class="example">gps.getSpeed()</pre></il>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "getOrgSpeed"></a>
+    <strong  style="color: red;">
+    getOrgSpeed ()
+    </strong>
+    </dt>
+    <dd>
+    <pre class="example"  style="color: red;">获取原始速度,字符串带浮点</pre>
+
+
+
+    <h3>Returns:</h3>
+    <ul>
+        <li>
+        <pre class="example">number speed 海里每小时的速度</pre></il>
+    </ul>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <li><pre class="example">gps.getOrgSpeed()</pre></il>
     </ul>
 
 </dd>
@@ -1134,7 +1278,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2018-08-08 16:40:54 </i>
+<i style="float:right;">Last updated 2019-01-31 14:59:30 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

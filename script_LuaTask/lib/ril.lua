@@ -49,16 +49,6 @@ local RILCMD = {
     ["+CPBF"] = 3,
     ["+CPBR"] = 3,
     ['+CLCC'] = 3,
-    ["+CIPSEND"] = 10,
-    ["+CIPCLOSE"] = 10,
-    ["+SSLINIT"] = 10,
-    ["+SSLCERT"] = 10,
-    ["+SSLCREATE"] = 10,
-    ["+SSLCONNECT"] = 10,
-    ["+SSLSEND"] = 10,
-    ["+SSLDESTROY"] = 10,
-    ["+SSLTERM"] = 10,
-    ["+CIFSR"] = 10,
     ["+CTFSGETID"] = 2,
     ["+CTFSDECRYPT"] = 2,
     ["+CTFSAUTH"] = 2,
@@ -270,7 +260,7 @@ local function procatc(data)
     local isurc = false
     
     --一些特殊的错误信息，转化为ERROR统一处理
-    if string.find(data, "^%+CMS ERROR:") or string.find(data, "^%+CME ERROR:") or (data == "CONNECT FAIL" and currcmd and string.match(currcmd, "CIPSTART")) then
+    if data:match("^%+CMS ERROR:") or data:match("^%+CME ERROR:") then
         data = "ERROR"
     end
     --执行成功的应答
@@ -287,10 +277,6 @@ local function procatc(data)
         if cmdhead == "+CMGS" then
             log.info("ril.procatc.send", currarg)
             vwrite(uart.ATC, currarg, "\026")
-        --发送数据
-        elseif cmdhead == "+CIPSEND" or cmdhead == "+SSLSEND" or cmdhead == "+SSLCERT" then
-            log.info("ril.procatc.send", "first 200 bytes", currarg:sub(1,200))
-            vwrite(uart.ATC, currarg)
         else
             log.error("error promot cmd:", currcmd)
         end
@@ -300,7 +286,7 @@ local function procatc(data)
             isurc = true
         --全数字类型
         elseif cmdtype == NUMBERIC then
-            local numstr = string.match(data, "(%x+)")
+            local numstr = data:match("(%x+)")
             if numstr == data then
                 interdata = data
             else
@@ -309,7 +295,7 @@ local function procatc(data)
         --字符串类型
         elseif cmdtype == STRING then
             --进一步检查格式
-            if string.match(data, rspformt or "^.+$") then
+            if data:match(rspformt or "^.+$") and not data:match("^%+CPIN:") then
                 interdata = data
             else
                 isurc = true
@@ -320,50 +306,12 @@ local function procatc(data)
             else
                 isurc = true
             end
-        --特殊处理
-        elseif cmdhead == "+CIFSR" then
-            local s = string.match(data, "%d+%.%d+%.%d+%.%d+")
-            if s ~= nil then
-                interdata = s
-                result = true
-            else
-                isurc = true
-            end
         --CGDATA 返回CONNECT或者ERROR
         elseif cmdhead == "+CGDATA" then
             if string.find(data, "CONNECT") == 1 then
                 result = true
                 respdata = data
             else 
-                isurc = true
-            end
-        --特殊处理
-        elseif cmdhead == "+CIPSEND" or cmdhead == "+CIPCLOSE" then
-            local keystr = cmdhead == "+CIPSEND" and "SEND" or "CLOSE"
-            local lid, res = string.match(data, "(%d), *([%u%d :]+)")
-            
-            if lid and res then
-                if (string.find(res, keystr) == 1 or string.find(res, "TCP ERROR") == 1 or string.find(res, "UDP ERROR") == 1 or string.find(data, "DATA ACCEPT")) and (lid == string.match(currcmd, "=(%d)")) then
-                    result = data:match("ERROR") == nil
-                    respdata = data
-                else
-                    isurc = true
-                end
-            elseif data == "+PDP: DEACT" then
-                result = true
-                respdata = data
-            else
-                isurc = true
-            end
-        elseif cmdhead == "+SSLINIT" or cmdhead == "+SSLCERT" or cmdhead == "+SSLCREATE" or cmdhead == "+SSLCONNECT" or cmdhead == "+SSLSEND" or cmdhead == "+SSLDESTROY" or cmdhead == "+SSLTERM" then
-            if string.match(data, "^SSL&%d,") then
-                respdata = data
-                if string.match(data, "ERROR") then
-                    result = false
-                else
-                    result = true
-                end
-            else
                 isurc = true
             end
         else

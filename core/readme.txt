@@ -1,4 +1,4 @@
-Air720系列的模块Flash总空间都为128Mb=16MB
+﻿Air720系列的模块Flash总空间都为128Mb=16MB
 
 目前有2种底层软件，一种支持浮点数和math库，另一种不支持：
 Luat_VXXXX_ASR1802：不支持浮点数和math库
@@ -15,5 +15,5 @@ Luat_VXXXX_ASR1802_FLOAT：支持浮点数和math库
 
 
 Air720系列模块的RAM总空间都为128Mb=16MB
-其中Lua运行可用内存800KB，可通过base.collectgarbage("count")查询已经使用的内存空间（返回值单位为KB）
+其中Lua运行可用内存1.5MB，可通过base.collectgarbage("count")查询已经使用的内存空间（返回值单位为KB）
 

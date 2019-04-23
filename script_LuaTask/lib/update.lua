@@ -12,7 +12,7 @@ require "common"
 
 module(..., package.seeall)
 
-local sUpdating,sCbFnc,sUrl,sPeriod,SRedir,sLocation
+local sUpdating,sCbFnc,sUrl,sPeriod,SRedir,sLocation,fotastart
 local sProcessedLen = 0
 --local sBraekTest = 0
 
@@ -51,7 +51,8 @@ function clientTask()
         sProcessedLen = 0
         while true do
             --sBraekTest = sBraekTest+30
-            log.info("update.http.request",sLocation,sUrl,sProcessedLen,sBraekTest)
+            log.info("update.http.request",sLocation,sUrl,sProcessedLen,sBraekTest,fotastart)
+            if not fotastart then break end
             http.request("GET",
                      sLocation or ((sUrl or "iot.openluat.com/api/site/firmware_upgrade").."?project_key=".._G.PRODUCT_KEY
                             .."&imei="..misc.getImei().."&device_key="..misc.getSn()
@@ -90,6 +91,12 @@ function clientTask()
         
         if sPeriod then
             sys.wait(sPeriod)
+            if rtos.fota_start()~=0 then 
+                log.error("update.request","fota_start fail")
+                fotastart = false
+            else
+                fotastart = true
+            end
         else
             break
         end
@@ -123,7 +130,10 @@ end
 function request(cbFnc,url,period,redir)
     if rtos.fota_start()~=0 then 
         log.error("update.request","fota_start fail")
+        fotastart = false
         return
+    else
+        fotastart = true
     end
     sCbFnc,sUrl,sPeriod,sRedir = cbFnc or sCbFnc,url or sUrl,period or sPeriod,sRedir or redir
     log.info("update.request",sCbFnc,sUrl,sPeriod,sRedir)

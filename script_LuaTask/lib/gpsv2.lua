@@ -10,6 +10,8 @@ require "utils"
 require "lbsLoc"
 module(..., package.seeall)
 
+-- 浮点支持
+local float = rtos.get_version():upper():find("FLOAT")
 -- GPS任务线程ID
 local GPS_CO
 --串口配置
@@ -215,7 +217,7 @@ end
 -- @param fnc,外部模块使用的电源管理函数
 -- @return 无
 -- @usage gpsv2.open()
--- @usage gpsv2.open(2, 115200, 8, 5)  -- 打开GPS，串口2，波特率115200，超低功耗跟踪模式
+-- @usage gpsv2.open(2, 115200, 0, 1)  -- 打开GPS，串口2，波特率115200，正常模式，1秒1个记录
 -- @usage gpsv2.open(2, 115200, 2, 1, 5) -- 打开GPS，串口2，波特率115200，周期低功耗模式1秒输出，5秒睡眠
 function open(id, baudrate, mode, sleepTm, fnc)
     sleepTm = tonumber(sleepTm) and sleepTm * 1000 or 5000
@@ -424,12 +426,16 @@ function getIntLocation()
         local integer, decimal = lng:match("(%d+).(%d+)")
         if tonumber(integer) and tonumber(decimal) then
             decimal = decimal:sub(1, 7)
-            lng = (integer / 100) * 10 ^ 7 + ((integer % 100) * 10 ^ 7 + decimal * 10 ^ (7 - #decimal)) / 60
-            integer, decimal = lat:match("(%d+).(%d+)")
-            decimal = decimal:sub(1, 7)
-            lat = (integer / 100) * 10 ^ 7 + ((integer % 100) * 10 ^ 7 + decimal * 10 ^ (7 - #decimal)) / 60
-            return lng, lat
+            local tmp = (integer % 100) * 10 ^ 7 + decimal * 10 ^ (7 - #decimal)
+            lng = ((integer - integer % 100) / 100) * 10 ^ 7 + (tmp - tmp % 60) / 60
         end
+        integer, decimal = lat:match("(%d+).(%d+)")
+        if tonumber(integer) and tonumber(decimal) then
+            decimal = decimal:sub(1, 7)
+            tmp = (integer % 100) * 10 ^ 7 + decimal * 10 ^ (7 - #decimal)
+            lat = ((integer - integer % 100) / 100) * 10 ^ 7 + (tmp - tmp % 60) / 60
+        end
+        return lng, lat
     end
     return 0, 0
 end
@@ -450,14 +456,14 @@ end
 -- @return string,string,返回度格式的字符串经度,维度,符号(正东负西,正北负南)
 -- @usage gpsv2.getCentLocation()
 function getCentLocation()
-    return Ggalng or "", Ggalat or ""
+    return Ggalng or 0, Ggalat or 0
 end
 
 --- 获取海拔
 -- @return number altitude，海拔，单位米
 -- @usage gpsv2.getAltitude()
 function getAltitude()
-    return tonumber(altitude:match("(%d+)") or "0")
+    return tonumber(altitude and altitude:match("(%d+)")) or 0
 end
 
 --- 获取速度
@@ -465,20 +471,20 @@ end
 -- @return number nmSpeed，第二个返回值为海里每小时的速度
 -- @usage gpsv2.getSpeed()
 function getSpeed()
-    local integer = tonumber(speed:match("(%d+)") or "0")
+    local integer = tonumber(speed and speed:match("(%d+)")) or 0
     return (integer * 1852 - (integer * 1852 % 1000)) / 1000, integer
 end
 
 --- 获取时速(KM/H)的整数型和浮点型(字符串)
 function getKmHour()
-    return tonumber(kmHour:match("(%d+)") or "0"), kmHour or "0"
+    return tonumber(kmHour and kmHour:match("(%d+)")) or 0, kmHour or "0"
 end
 
 --- 获取方向角
 -- @return number Azimuth，方位角
 -- @usage gpsv2.getAzimuth()
 function getAzimuth()
-    return tonumber(azimuth:match("(%d+)") or "0")
+    return tonumber(azimuth and azimuth:match("(%d+)")) or 0
 end
 
 --- 获取可见卫星的个数
@@ -492,7 +498,7 @@ end
 -- @return number count，定位使用的卫星个数
 -- @usage gpsv2.getUsedSateCnt()
 function getUsedSateCnt()
-    return tonumber(usedSateCnt or "0")
+    return tonumber(usedSateCnt) or 0
 end
 
 --- 获取RMC语句中的UTC时间
@@ -509,7 +515,7 @@ end
 -- @return number sep，大地高
 -- @usage gpsv2.getSep()
 function getSep()
-    return tonumber(Sep or "0")
+    return tonumber(Sep) or 0
 end
 
 --- 获取GSA语句中的可见卫星号
@@ -519,7 +525,7 @@ end
 -- @return string viewedSateId，可用卫星号，""表示无效
 -- @usage gpsv2.getSateSn()
 function getSateSn()
-    return SateSn or ""
+    return tonumber(SateSn) or 0
 end
 --- 获取BDGSV解析结果
 -- @return table, GSV解析后的数组

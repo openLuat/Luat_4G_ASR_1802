@@ -14,9 +14,9 @@ module(..., package.seeall)
 --gVersion：固件版本号字符串，如果用户没有调用本文件的setVer接口设置，则默认为_G.PROJECT.."_".._G.VERSION.."_"..sys.getcorever()
 --gName：阿里云iot网站上配置的新固件文件下载后，在模块中的保存路径，如果用户没有调用本文件的setName接口设置，则默认为/luazip/update.bin
 --gCb：新固件下载成功后，要执行的回调函数
-local gVersion,gName,gCb = _G.PROJECT.."_".._G.VERSION.."_".."Luat_V0000_LTE"
+local gVersion,gName,gCb = _G.PROJECT.."_".._G.VERSION.."_"..rtos.get_version()
 local gFilePath,gFileSize
-local processed,processMileStone = 0,100*1024
+local processed = 0
 --productKey：产品标识
 --deviceName：设备名称
 local productKey,deviceName
@@ -29,9 +29,9 @@ local lastStep
 local downloading
 
 local function otaCb(result,filePath,md5,size)
-    log.info("aLiYunOta.otaCb",gCb,result,filePath,size,io.fileSize(filePath))
+    log.info("aLiYunOta.otaCb",gCb,result,filePath,size,(type(gName) =="string") and io.fileSize(filePath) or "function")
     downloading = false
-  --校验MD5
+    --校验MD5
     if result then
         if type(gName) == "string" then
             local calMD5 = crypto.md5(filePath,"file")
@@ -62,7 +62,7 @@ local function upgradeStepRpt(step,desc)
     if sConnected then
         if step<=0 or step==100 then sys.timerStop(getPercent) end
         lastStep = step
-        aLiYun.publish("/ota/device/progress/"..productKey.."/"..deviceName,"{\"id\":1,\"params\":{\"step\":\"".."100".."\",\"desc\":\""..(desc or "").."\"}}")
+        aLiYun.publish("/ota/device/progress/"..productKey.."/"..deviceName,"{\"id\":1,\"params\":{\"step\":\""..step.."\",\"desc\":\""..(desc or "").."\"}}")
     end
 end
 
@@ -95,10 +95,6 @@ local function saveUpdata(pdata,binlen,statusCode)
             --打印此升级包的长度跟总包长度
             processed = processed + pdata:len()
             log.info("updata.fota_process",processed,binlen)
-            if(processed > processMileStone) then
-                processMileStone = processMileStone + 100*1024
-                log.info("updata.fota_process",processed,binlen)
-            end
         end
     end    
 end
@@ -131,7 +127,7 @@ local function downloadTask(url,size,md5)
                     break
                 end
             end
-            if type(gname) == "string" then
+            if type(gName) == "string" then
                 rangeBegin = io.fileSize(gName)
             else
                 rangeBegin = processed

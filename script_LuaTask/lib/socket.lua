@@ -32,7 +32,7 @@ local function errorInd(error)
         --if error == 'CLOSED' then sys.publish("SOCKET_ACTIVE", socketsConnected) end
         if c.co and coroutine.status(c.co) == "suspended" then
             --coroutine.resume(c.co, false)
-            table.insert(coSuspended,c.co)
+            table.insert(coSuspended, c.co)
         end
     end
     
@@ -45,7 +45,6 @@ end
 
 sys.subscribe("IP_ERROR_IND", function()errorInd('IP_ERROR_IND') end)
 --sys.subscribe('IP_SHUT_IND', function()errorInd('CLOSED') end)
-
 -- 创建socket函数
 local mt = {}
 mt.__index = mt
@@ -137,15 +136,15 @@ function mt:connect(address, port, timeout)
         self.id = socketcore.sock_conn(1, address, port)
     end
     if not self.id then
-        log.info("socket:connect: core sock conn error",self.protocol, address, port, self.cert)
+        log.info("socket:connect: core sock conn error", self.protocol, address, port, self.cert)
         return false
     end
     log.info("socket:connect-coreid,prot,addr,port,cert,timeout", self.id, self.protocol, address, port, self.cert, timeout or 120)
     sockets[self.id] = self
     self.wait = "SOCKET_CONNECT"
-    self.timerId = sys.timerStart(coroutine.resume, (timeout or 120)*1000, self.co, false, "TIMEOUT")
-    local result,reason = coroutine.yield()
-    if self.timerId and reason~="TIMEOUT" then sys.timerStop(self.timerId) end 
+    self.timerId = sys.timerStart(coroutine.resume, (timeout or 120) * 1000, self.co, false, "TIMEOUT")
+    local result, reason = coroutine.yield()
+    if self.timerId and reason ~= "TIMEOUT" then sys.timerStop(self.timerId) end
     if not result then log.info("socket:connect: connect fail", reason) return false end
     log.info("socket:connect: connect ok")
     self.connected = true
@@ -172,23 +171,37 @@ function mt:asyncSelect(keepAlive, pingreq)
         for i = 1, string.len(data), SENDSIZE do
             -- 按最大MTU单元对data分包
             socketcore.sock_send(self.id, data:sub(i, i + SENDSIZE - 1))
-            if not coroutine.yield() then return false end
+            if self.timeout then
+                self.timerId = sys.timerStart(coroutine.resume, self.timeout*1000, self.co, false, "TIMEOUT")
+            end
+            local result,reason = coroutine.yield()
+            if self.timerId and reason~="TIMEOUT" then sys.timerStop(self.timerId) end
+            sys.publish("SOCKET_ASYNC_SEND", result)
+            if not result then
+                return false
+            end
         end
     end
     self.wait = "SOCKET_WAIT"
     sys.publish("SOCKET_SEND", self.id)
-    sys.timerStart(self.asyncSend, (keepAlive or 300) * 1000, self, pingreq or "\0")
+    if type(pingreq) == "function" then
+        sys.timerStart(pingreq, (keepAlive or 300) * 1000)
+    else
+        sys.timerStart(self.asyncSend, (keepAlive or 300) * 1000, self, pingreq or "\0")
+    end    
     return coroutine.yield()
 end
 --- 异步发送数据
 -- @string data 数据
+-- @number[opt=nil] timeout 可选参数，发送超时时间，单位秒；为nil时表示不支持timeout
 -- @return result true - 成功，false - 失败
 -- @usage  c = socket.tcp(); c:connect(); c:asyncSend("12345678");
-function mt:asyncSend(data)
+function mt:asyncSend(data,timeout)
     if self.error then
         log.warn('socket.client:asyncSend', 'error', self.error)
         return false
     end
+    self.timeout = timeout
     table.insert(self.output, data or "")
     if self.wait == "SOCKET_WAIT" then coroutine.resume(self.co, true) end
     return true
@@ -214,7 +227,7 @@ end
 -- @number[opt=120] timeout 可选参数，发送超时时间，单位秒
 -- @return result true - 成功，false - 失败
 -- @usage  c = socket.tcp(); c:connect(); c:send("12345678");
-function mt:send(data,timeout)
+function mt:send(data, timeout)
     assert(self.co == coroutine.running(), "socket:recv: coroutine mismatch")
     if self.error then
         log.warn('socket.client:send', 'error', self.error)
@@ -225,9 +238,9 @@ function mt:send(data,timeout)
         -- 按最大MTU单元对data分包
         self.wait = "SOCKET_SEND"
         socketcore.sock_send(self.id, data:sub(i, i + SENDSIZE - 1))
-        self.timerId = sys.timerStart(coroutine.resume, (timeout or 120)*1000, self.co, false, "TIMEOUT")
-        local result,reason = coroutine.yield()
-        if self.timerId and reason~="TIMEOUT" then sys.timerStop(self.timerId) end 
+        self.timerId = sys.timerStart(coroutine.resume, (timeout or 120) * 1000, self.co, false, "TIMEOUT")
+        local result, reason = coroutine.yield()
+        if self.timerId and reason ~= "TIMEOUT" then sys.timerStop(self.timerId) end
         if not result then log.info("socket:send", "send fail", reason) return false end
     end
     return true
@@ -270,7 +283,14 @@ function mt:recv(timeout, msg)
                 return r, s
             end
         else
-            return coroutine.yield()
+            local r, s = coroutine.yield()
+            if r == 0xAA then
+                local dat = table.concat(self.output)
+                self.output = {}
+                return false, msg, dat
+            else
+                return r, s
+            end
         end
     end
     
@@ -294,19 +314,19 @@ function mt:close()
     end
     --此处不要再判断状态，否则在连接超时失败时，conneted状态仍然是未连接，会导致无法close
     --if self.connected then
-        log.info("socket:sock_close", self.id)
-        local result,reason
-        self.connected = false
-        if self.id then
-            socketcore.sock_close(self.id)
-            self.wait = "SOCKET_CLOSE"
-            while true do
-                result,reason = coroutine.yield()
-                if reason=="RESPONSE" then break end
-            end
+    log.info("socket:sock_close", self.id)
+    local result, reason
+    self.connected = false
+    if self.id then
+        socketcore.sock_close(self.id)
+        self.wait = "SOCKET_CLOSE"
+        while true do
+            result, reason = coroutine.yield()
+            if reason == "RESPONSE" then break end
         end
-        socketsConnected = self.connected or socketsConnected
-        sys.publish("SOCKET_ACTIVE", socketsConnected)
+    end
+    socketsConnected = self.connected or socketsConnected
+    sys.publish("SOCKET_ACTIVE", socketsConnected)
     --end
     if self.id ~= nil then
         sockets[self.id] = nil
@@ -384,3 +404,15 @@ function printStatus()
         end
     end
 end
+
+--- 设置TCP层自动重传的参数
+-- @number[opt=4] retryCnt，重传次数；取值范围0到12
+-- @number[opt=16] retryMaxTimeout，限制每次重传允许的最大超时时间(单位秒)，取值范围1到16
+-- @return nil
+-- @usage
+-- setTcpResendPara(3,8)
+-- setTcpResendPara(4,16)
+function setTcpResendPara(retryCnt, retryMaxTimeout)
+    ril.request("AT+TCPUSERPARAM=6," .. (retryCnt or 4) .. ",7200," .. (retryMaxTimeout or 16))
+end
+-- setTcpResendPara(4, 16)

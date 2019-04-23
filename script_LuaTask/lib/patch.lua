@@ -64,10 +64,12 @@ coroutine.resume = function(...)
             local traceBack = debug.traceback(co)
             traceBack = (traceBack and traceBack~="") and (arg[2].."\r\n"..traceBack) or arg[2]
             if errDump and type(errDump.appendErr)=="function" then
+                log.error("coroutine.resume",traceBack)
                 errDump.appendErr(traceBack)
             else
                 log.error("coroutine.resume",traceBack)
             end
+            if _G.COROUTINE_ERROR_RESTART then rtos.restart() end
         end
         return unpack(arg)
     end

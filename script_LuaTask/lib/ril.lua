@@ -54,7 +54,8 @@ local RILCMD = {
     ["+CTFSAUTH"] = 2,
     ["+CGDATA"] = 10,
     ["+CIND"] = 2,
-    ["+CGDCONT"] = 4,
+    ["+CGDCONT"] = 3,
+	["+CGACT"] = 3,
 }
 
 --radioready：AT命令通道是否准备就绪

@@ -12,7 +12,7 @@ local sockets = {}
 -- 单次发送数据最大值
 local SENDSIZE = 11200
 -- 缓冲区最大下标
-local INDEX_MAX = 128
+local INDEX_MAX = 256
 -- 是否有socket正处在链接
 local socketsConnected = false
 --- SOCKET 是否有可用
@@ -113,6 +113,9 @@ function mt:connect(address, port, timeout)
         log.info("socket.connect: ip not ready")
         return false
     end
+    
+    self.address = address
+    self.port = port
     if self.protocol == 'TCP' then
         self.id = socketcore.sock_conn(0, address, port)
     elseif self.protocol == 'TCPSSL' then
@@ -145,7 +148,11 @@ function mt:connect(address, port, timeout)
     self.timerId = sys.timerStart(coroutine.resume, (timeout or 120) * 1000, self.co, false, "TIMEOUT")
     local result, reason = coroutine.yield()
     if self.timerId and reason ~= "TIMEOUT" then sys.timerStop(self.timerId) end
-    if not result then log.info("socket:connect: connect fail", reason) return false end
+    if not result then
+        log.info("socket:connect: connect fail", reason)
+        sys.publish("LIB_SOCKET_CONNECT_FAIL_IND",self.ssl,self.protocol,address,port)
+        return false
+    end
     log.info("socket:connect: connect ok")
     self.connected = true
     socketsConnected = self.connected or socketsConnected
@@ -172,23 +179,26 @@ function mt:asyncSelect(keepAlive, pingreq)
             -- 按最大MTU单元对data分包
             socketcore.sock_send(self.id, data:sub(i, i + SENDSIZE - 1))
             if self.timeout then
-                self.timerId = sys.timerStart(coroutine.resume, self.timeout*1000, self.co, false, "TIMEOUT")
+                self.timerId = sys.timerStart(coroutine.resume, self.timeout * 1000, self.co, false, "TIMEOUT")
             end
-            local result,reason = coroutine.yield()
-            if self.timerId and reason~="TIMEOUT" then sys.timerStop(self.timerId) end
+            local result, reason = coroutine.yield()
+            if self.timerId and reason ~= "TIMEOUT" then sys.timerStop(self.timerId) end
             sys.publish("SOCKET_ASYNC_SEND", result)
             if not result then
+                sys.publish("LIB_SOCKET_SEND_FAIL_IND",self.ssl,self.protocol,self.address,self.port)
                 return false
             end
         end
     end
     self.wait = "SOCKET_WAIT"
     sys.publish("SOCKET_SEND", self.id)
-    if type(pingreq) == "function" then
-        sys.timerStart(pingreq, (keepAlive or 300) * 1000)
-    else
-        sys.timerStart(self.asyncSend, (keepAlive or 300) * 1000, self, pingreq or "\0")
-    end    
+    if keepAlive and keepAlive ~= 0 then
+        if type(pingreq) == "function" then
+            sys.timerStart(pingreq, keepAlive * 1000)
+        else
+            sys.timerStart(self.asyncSend, keepAlive * 1000, self, pingreq or "\0")
+        end
+    end
     return coroutine.yield()
 end
 --- 异步发送数据
@@ -196,7 +206,7 @@ end
 -- @number[opt=nil] timeout 可选参数，发送超时时间，单位秒；为nil时表示不支持timeout
 -- @return result true - 成功，false - 失败
 -- @usage  c = socket.tcp(); c:connect(); c:asyncSend("12345678");
-function mt:asyncSend(data,timeout)
+function mt:asyncSend(data, timeout)
     if self.error then
         log.warn('socket.client:asyncSend', 'error', self.error)
         return false
@@ -241,7 +251,11 @@ function mt:send(data, timeout)
         self.timerId = sys.timerStart(coroutine.resume, (timeout or 120) * 1000, self.co, false, "TIMEOUT")
         local result, reason = coroutine.yield()
         if self.timerId and reason ~= "TIMEOUT" then sys.timerStop(self.timerId) end
-        if not result then log.info("socket:send", "send fail", reason) return false end
+        if not result then
+            log.info("socket:send", "send fail", reason)
+            sys.publish("LIB_SOCKET_SEND_FAIL_IND",self.ssl,self.protocol,self.address,self.port)
+            return false
+        end
     end
     return true
 end
@@ -415,4 +429,5 @@ end
 function setTcpResendPara(retryCnt, retryMaxTimeout)
     ril.request("AT+TCPUSERPARAM=6," .. (retryCnt or 4) .. ",7200," .. (retryMaxTimeout or 16))
 end
--- setTcpResendPara(4, 16)
+
+-- setTcpResendPara(1, 16)

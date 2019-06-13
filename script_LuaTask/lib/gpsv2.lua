@@ -121,7 +121,8 @@ local function parseNmea(s)
         end
     elseif s:match("VTG") then
         kmHour = s:match("VTG,%d*%.*%d*,%w*,%d*%.*%d*,%w*,%d*%.*%d*,%w*,(%d*%.*%d*)")
-        if fixFlag then sys.publish("GPS_MSG_REPORT", 1) else sys.publish("GPS_MSG_NOREPORT", 0) end
+        -- if fixFlag then sys.publish("GPS_MSG_REPORT", 1) else sys.publish("GPS_MSG_NOREPORT", 0) end
+        sys.publish("GPS_MSG_REPORT", fixFlag and 1 or 0)
     end
 end
 
@@ -224,6 +225,7 @@ function open(id, baudrate, mode, sleepTm, fnc)
     pm.wake("gpsv2.lua")
     uartID, uartBaudrate = tonumber(id) or uartID, tonumber(baudrate) or uartBaudrate
     log.info("GPS-UARTR-ID and buad:", id, baudrate, uartID, uartBaudrate)
+    uart.close(uartID)
     uart.setup(uartID, uartBaudrate, 8, uart.PAR_NONE, uart.STOP_1)
     if fnc and type(fnc) == "function" then
         fnc()
@@ -440,15 +442,17 @@ function getIntLocation()
     return 0, 0
 end
 --- 获取基站定位的经纬度信息dd.dddd
-function getDeglbs()
+function getDeglbs()    
     return lbs_lng or "0.0", lbs_lat or "0.0"
 end
 
 --- 获取度格式的经纬度信息dd.dddddd
--- @return string,string,返回度格式的字符串经度,维度,符号(正东负西,正北负南)
+-- @return string,string,固件为非浮点时返回度格式的字符串经度,维度,符号(正东负西,正北负南)
+-- @return float,float,固件为浮点的时候，返回浮点类型
 -- @usage gpsv2.getLocation()
 function getDegLocation()
     local lng, lat = getIntLocation()
+    if float then return lng / 10 ^ 7, lat / 10 ^ 7 end
     return string.format("%d.%07d", lng / 10 ^ 7, lng % 10 ^ 7), string.format("%d.%07d", lat / 10 ^ 7, lat % 10 ^ 7)
 end
 

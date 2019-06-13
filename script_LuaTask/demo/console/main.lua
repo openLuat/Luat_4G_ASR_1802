@@ -15,10 +15,12 @@ LOG_LEVEL = log.LOGLEVEL_TRACE
 2、最后一次是调用log.openTrace(true,1,115200)配置日志输出端口，此时要关闭输出日志，直接调用log.openTrace(false,1)即可
 ]]
 --log.openTrace(true,1,115200)
-
 require "sys"
 require "httpv2"
 require "net"
+require "pins"
+require "common"
+require "powerKey"
 --每1分钟查询一次GSM信号强度
 --每1分钟查询一次基站信息
 net.startQueryAll(60000, 60000)
@@ -29,6 +31,7 @@ net.startQueryAll(60000, 60000)
 --使用说明参考demo/console下的《console功能使用说明.docx》
 require "misc"
 require "console"
+require "gpsv2"
 console.setup(2, 115200)
 
 
@@ -40,7 +43,6 @@ console.setup(2, 115200)
 --网络指示灯功能模块中，默认配置了各种工作状态下指示灯的闪烁规律，参考netLed.lua中ledBlinkTime配置的默认值
 --如果默认值满足不了需求，此处调用netLed.updateBlinkTime去配置闪烁时长
 --LTE指示灯功能模块中，配置的是注册上4G网络，灯就常亮，其余任何状态灯都会熄灭
-
 --加载错误日志管理功能模块【强烈建议打开此功能】
 --如下2行代码，只是简单的演示如何使用errDump功能，详情参考errDump的api
 require "errDump"
@@ -51,7 +53,6 @@ errDump.request("udp://ota.airm2m.com:9072")
 --PRODUCT_KEY = "v32xEAKsGTIEQxtqgwCldp5aPlcnPs3K"
 --require "update"
 --update.request()
-
 --启动系统框架
 sys.init(0, 0)
 sys.run()

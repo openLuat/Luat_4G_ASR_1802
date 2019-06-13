@@ -464,10 +464,8 @@ end
 -- process data
 -- mqttc:disconnect()
 function mqttc:disconnect()
-    if self.connected then
-        self:write(packZeroData(DISCONNECT))
-    end
     if self.io then
+        if self.connected then self:write(packZeroData(DISCONNECT)) end
         self.io:close()
         self.io = nil
     end

@@ -38,7 +38,6 @@ sys.subscribe("SOCKET_RECV", function(id)
     end
 end)
 
-
 sys.timerLoopStart(function()
     log.info("打印占用的内存:", _G.collectgarbage("count"))-- 打印占用的RAM
     log.info("打印可用的空间", rtos.get_fs_free_size())-- 打印剩余FALSH，单位Byte

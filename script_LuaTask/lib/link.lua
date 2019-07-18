@@ -45,7 +45,7 @@ function setAuthApn(prot,apn,user,pwd)
 end
 
 local function Pdp_Act()
-    log.info(ready,net.getNetMode(), gprsAttached)
+    log.info("link.Pdp_Act",ready,net.getNetMode(), gprsAttached)
     if ready then 
         request("AT+CGDCONT?", nil, pdpCmdCnf)
         return 

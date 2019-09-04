@@ -23,7 +23,7 @@ sys.taskInit(
                 local socketClient = socket.tcp()
                 --执行socket connect动作，最多重试3次
                 local connectCnt = 0
-                while not socketClient:connect("36.7.87.100","6500") do
+                while not socketClient:connect("180.97.80.55","12415") do
                     connectCnt = connectCnt+1
                     sys.wait(2000)
                     if connectCnt==3 then break end

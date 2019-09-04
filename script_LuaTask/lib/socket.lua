@@ -240,7 +240,7 @@ end
 -- @return result true - 成功，false - 失败
 -- @usage  c = socket.tcp(); c:connect(); c:send("12345678");
 function mt:send(data, timeout)
-    assert(self.co == coroutine.running(), "socket:recv: coroutine mismatch")
+    assert(self.co == coroutine.running(), "socket:send: coroutine mismatch")
     if self.error then
         log.warn('socket.client:send', 'error', self.error)
         return false

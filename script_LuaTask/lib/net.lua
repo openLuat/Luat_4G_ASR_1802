@@ -412,7 +412,13 @@ function switchFly(mode)
 end
 
 --- 获取netmode
--- @return netMode
+-- @return number netMode,注册的网络类型
+-- 0：未注册
+-- 1：2G GSM网络
+-- 2：2.5G EDGE数据网络
+-- 3：3G TD网络
+-- 4：4G LTE网络
+-- 5：3G WCDMA网络
 -- @usage net.getNetMode()
 function getNetMode()
 	return netMode
@@ -667,6 +673,7 @@ ril.request("AT+CEREG?")
 ril.request("AT*MRD_CDF=Q,GsmCalData.nvm")
 ril.request("AT*MRD_CDF=Q,aplp_rf_calibration.nvm")
 ril.request("AT*MRD_CDF=Q,LteCalData.nvm")
+ril.request("AT*BAND?")
 setEngMode(1)
 --重置当前小区和临近小区信息表
 resetCellInfo()

@@ -146,7 +146,7 @@ function mt:connect(address, port, timeout)
             if self.id==-2 then
                 require "http"
                 --请求腾讯云免费HttpDns解析
-                http.request("GET", "119.29.29.29/d?dn=" .. address:sub(1,-2), nil, nil, nil, 40000,
+                http.request("GET", "119.29.29.29/d?dn=" .. address, nil, nil, nil, 40000,
                     function(result, statusCode, head, body)
                         log.info("socket.httpDnsCb", result, statusCode, head, body)
                         sys.publish("SOCKET_HTTPDNS_RESULT", result, statusCode, head, body)

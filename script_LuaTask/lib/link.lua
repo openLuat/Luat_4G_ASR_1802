@@ -35,7 +35,7 @@ end
 local function setCgdf()
     request("AT+AUTOAPN=0")
     request('AT*CGDFLT=1,"IP","'..authApn..'",,,,,,,,,,,,,,,,,,1')
-    request('AT*CGDFAUTH=0,'..authProt..',"'..authUser..'","'..authPassword..'"',nil,function(cmd,result)
+    request('AT*CGDFAUTH=1,'..authProt..',"'..authUser..'","'..authPassword..'"',nil,function(cmd,result)
         if result then
             sys.restart("CGDFAUTH")
         else

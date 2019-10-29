@@ -412,9 +412,10 @@ rtos.on(rtos.MSG_SOCK_CLOSE_IND, function(msg)
     sockets[msg.socket_index].error = 'CLOSED'
     socketsConnected = sockets[msg.socket_index].connected or socketsConnected
     sys.publish("SOCKET_ACTIVE", socketsConnected)
+    --[[
     if type(socketcore.sock_destroy) == "function" then
         socketcore.sock_destroy(msg.socket_index)
-    end
+    end]]
     coroutine.resume(sockets[msg.socket_index].co, false, "CLOSED")
 end)
 rtos.on(rtos.MSG_SOCK_RECV_IND, function(msg)

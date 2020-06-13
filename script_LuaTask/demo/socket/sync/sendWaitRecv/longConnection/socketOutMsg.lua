@@ -13,6 +13,7 @@ local msgQueue = {}
 
 local function insertMsg(data,user)
     table.insert(msgQueue,{data=data,user=user})
+    sys.publish("APP_SOCKET_SEND_DATA")
 end
 
 local function sndHeartCb(result)
@@ -53,12 +54,6 @@ function unInit()
     end
 end
 
---- socket客户端是否有数据等待发送
--- @return 有数据等待发送返回true，否则返回false
--- @usage socketOutMsg.waitForSend()
-function waitForSend()
-    return #msgQueue > 0
-end
 
 --- socket客户端数据发送处理
 -- @param socketClient，socket客户端对象

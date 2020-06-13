@@ -45,7 +45,7 @@ getGpio54Fnc = pins.setup(pio.P1_22,gpio54IntFnc)
 pmd.ldoset(x,pmd.VLDO6)
 x=0时：关闭LDO
 x=1时：LDO输出1.8V
-x=2时：LDO输出2.5V
+x=2时：LDO输出1.9V
 x=3时：LDO输出2.5V
 x=4时：LDO输出2.8V
 x=5时：LDO输出2.9V
@@ -53,3 +53,4 @@ x=6时：LDO输出3.1V
 x=7时：LDO输出3.3V
 x=8时：LDO输出1.7V
 ]]
+

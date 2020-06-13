@@ -136,7 +136,7 @@
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#mt:recv">
-    mt:recv (<strong  style="color: gray;">[timeout=0]</strong><strong  style="color: gray;">[, msg=nil]</strong>)
+    mt:recv (<strong  style="color: gray;">[timeout=0]</strong><strong  style="color: gray;">[, msg=nil]</strong><strong  style="color: gray;">[, msgNoResume=nil]</strong>)
     </a></td>
 	<td class="summary">接收数据</td>
 	</tr>
@@ -151,6 +151,19 @@
     setTcpResendPara (<strong  style="color: gray;">[retryCnt=4]</strong><strong  style="color: gray;">[, retryMaxTimeout=16]</strong>)
     </a></td>
 	<td class="summary">设置TCP层自动重传的参数</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setDnsParsePara">
+    setDnsParsePara (<strong  style="color: gray;">[retryCnt=4]</strong><strong  style="color: gray;">[, retryTimeoutMulti=4]</strong>)
+    </a></td>
+	<td class="summary">设置域名解析参数
+ 注意：0027以及之后的core版本才支持此功能</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#printStatus">
+    printStatus ()
+    </a></td>
+	<td class="summary">打印所有socket的状态</td>
 	</tr>
 </table>
 <h2><a href="#Fields">Fields</a></h2>
@@ -422,7 +435,7 @@ c = socket.tcp(<span class="keyword">true</span>, {caCert=<span class="string">"
     <dt>
     <a name = "mt:recv"></a>
     <strong  style="color: red;">
-    mt:recv (<strong  style="color: green;">[timeout=0]</strong><strong  style="color: green;">[, msg=nil]</strong>)
+    mt:recv (<strong  style="color: green;">[timeout=0]</strong><strong  style="color: green;">[, msg=nil]</strong><strong  style="color: green;">[, msgNoResume=nil]</strong>)
     </strong>
     </dt>
     <dd>
@@ -441,6 +454,11 @@ c = socket.tcp(<span class="keyword">true</span>, {caCert=<span class="string">"
          [<em>此参数可选，默认值为：</em> nil]
         <pre class="example"> 可选参数，控制socket所在的线程退出recv阻塞状态</pre>
         </li>
+        <li><span class="parameter">msgNoResume</span>
+            <span class="types"><span class="type">bool</span></span>
+         [<em>此参数可选，默认值为：</em> nil]
+        <pre class="example"> 可选参数，控制socket所在的线程退出recv阻塞状态，false或者nil表示“在recv阻塞状态，收到msg消息，可以退出阻塞状态”，true表示不退出</pre>
+        </li>
     </ul>
 
     <h3>Returns:</h3>
@@ -448,7 +466,9 @@ c = socket.tcp(<span class="keyword">true</span>, {caCert=<span class="string">"
         <li>
         <pre class="example">result 数据接收结果，true表示成功，false表示失败</pre></li>
         <li>
-        <pre class="example">data 如果成功的话，返回接收到的数据；超时时返回错误为"timeout"；msg控制退出时返回msg</pre></li>
+        <pre class="example">data 如果成功的话，返回接收到的数据；超时时返回错误为"timeout"；msg控制退出时返回msg的字符串</pre></li>
+        <li>
+        <pre class="example">param 如果是msg返回的false，则data的值是msg，param的值是msg的参数</pre></li>
     </ol>
 
 
@@ -525,6 +545,77 @@ setTcpResendPara(<span class="number">4</span>,<span class="number">16</span>)</
     </ul>
 
 </dd>
+    <dt>
+    <a name = "setDnsParsePara"></a>
+    <strong  style="color: red;">
+    setDnsParsePara (<strong  style="color: green;">[retryCnt=4]</strong><strong  style="color: green;">[, retryTimeoutMulti=4]</strong>)
+    </strong>
+    </dt>
+    <dd>
+    <pre class="example"  style="color: red;">设置域名解析参数
+ 注意：0027以及之后的core版本才支持此功能</pre>
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">retryCnt</span>
+            <span class="types"><span class="type">number</span></span>
+         [<em>此参数可选，默认值为：</em> 4]
+        <pre class="example">重传次数；取值范围1到8</pre>
+        </li>
+        <li><span class="parameter">retryTimeoutMulti</span>
+            <span class="types"><span class="type">number</span></span>
+         [<em>此参数可选，默认值为：</em> 4]
+        <pre class="example">重传超时时间倍数，取值范围1到5
+                第n次重传超时时间的计算方式为：第n次的重传超时基数*retryTimeoutMulti，单位为秒
+                重传超时基数表为{1, 1, 2, 4, 4, 4, 4, 4}
+                第1次重传超时时间为：1*retryTimeoutMulti 秒
+                第2次重传超时时间为：1*retryTimeoutMulti 秒
+                第3次重传超时时间为：2*retryTimeoutMulti 秒
+                ...........................................
+                第8次重传超时时间为：8*retryTimeoutMulti 秒</pre>
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ul>
+        <li>
+        <pre class="example">nil</pre></il>
+    </ul>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <li><pre class="example">socket.setDnsParsePara(<span class="number">8</span>,<span class="number">5</span>)</pre></il>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "printStatus"></a>
+    <strong  style="color: red;">
+    printStatus ()
+    </strong>
+    </dt>
+    <dd>
+    <pre class="example"  style="color: red;">打印所有socket的状态</pre>
+
+
+
+    <h3>Returns:</h3>
+    <ul>
+        <li>
+        <pre class="example">无</pre></il>
+    </ul>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <li><pre class="example">socket.printStatus()</pre></il>
+    </ul>
+
+</dd>
 </dl>
     <h2 class="section-header "><a name="Fields"></a>Fields</h2>
 
@@ -552,7 +643,7 @@ setTcpResendPara(<span class="number">4</span>,<span class="number">16</span>)</
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2019-10-22 16:00:46 </i>
+<i style="float:right;">Last updated 2020-06-13 11:38:12 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

@@ -109,8 +109,23 @@ local function pbrsp(cmd,success,response,intermediate)
     end
 end
 
+--[[
+函数名：urc
+功能  ：主动上报消息处理函数
+参数  ：data,prefix
+返回值：无
+]]
+local function urc(data, prefix)
+	local pbready = string.match(data, "(%d+)", string.len(prefix) + 1)
+	pbready = tonumber(pbready)
+    if pbready == 1 then
+		req("AT+CPBS=\"SM\"") 
+    end
+end
+
 ril.regRsp("+CPBR",pbrsp)
 ril.regRsp("+CPBW",pbrsp)
 ril.regRsp("+CPBS",pbrsp)
 ril.regRsp("+CPBS?",pbrsp)
-req("AT+CPBS=\"SM\"")
+ril.regUrc("+MPBK", urc)
+

@@ -10,7 +10,7 @@ require "patch"
 module(..., package.seeall)
 
 -- lib脚本版本号，只要lib中的任何一个脚本做了修改，都需要更新此版本号
-SCRIPT_LIB_VER = "2.2.7"
+SCRIPT_LIB_VER = "2.2.8"
 
 -- TaskID最大值
 local TASK_TIMER_ID_MAX = 0x1FFFFFFF
@@ -291,7 +291,7 @@ function unsubscribe(id, callback)
         log.warn("warning: sys.unsubscribe invalid parameter", id, callback)
         return
     end
-    if subscribers[id] then subscribers[id][callback] = nil end
+    if subscribers[id] then subscribers[id][callback] = false end
 end
 
 --- 发布内部消息，存储在内部消息队列中
@@ -309,12 +309,20 @@ local function dispatch()
             break
         end
         local message = table.remove(messageQueue, 1)
+        --log.info("sys.dispatch message",message[1],subscribers[message[1]])
         if subscribers[message[1]] then
-            for callback, _ in pairs(subscribers[message[1]]) do
-                if type(callback) == "function" then
-                    callback(unpack(message, 2, #message))
-                elseif type(callback) == "thread" then
-                    coroutine.resume(callback, unpack(message))
+            for callback, flag in pairs(subscribers[message[1]]) do
+                if flag then
+                    if type(callback) == "function" then
+                        callback(unpack(message, 2, #message))
+                    elseif type(callback) == "thread" then
+                        coroutine.resume(callback, unpack(message))
+                    end
+                end
+            end
+            for callback, flag in pairs(subscribers[message[1]]) do
+                if not flag then
+                    subscribers[message[1]][callback] = nil
                 end
             end
         end
@@ -376,3 +384,8 @@ function run()
 end
 
 require "clib"
+
+if type(rtos.openSoftDog)=="function" then
+    rtos.openSoftDog(60000)
+    sys.timerLoopStart(rtos.eatSoftDog,20000)
+end

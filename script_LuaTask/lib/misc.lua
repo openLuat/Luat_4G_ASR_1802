@@ -12,6 +12,7 @@ module(..., package.seeall)
 -- calib 校准标志
 local sn, imei, calib, ver, muid
 local setSnCbFnc,setImeiCbFnc,setClkCbFnc
+local sPpType,sPpVoltage
 
 local function timeReport()
     sys.publish("TIME_CLK_IND")
@@ -49,14 +50,6 @@ local function rsp(cmd, success, response, intermediate)
         sys.publish('IMEI_READY_IND')
     elseif cmd == 'AT+VER' then
         ver = intermediate
-    --查询是否校准
-    elseif cmd == "AT+ATWMFT=99" then
-        log.info('misc.ATWMFT', intermediate)
-        if intermediate == "SUCC" then
-            calib = true
-        else
-            calib = false
-        end
     elseif prefix == '+CCLK' then
         if success then
             sys.publish('TIME_UPDATE_IND')
@@ -77,6 +70,25 @@ local function rsp(cmd, success, response, intermediate)
         end
     elseif cmd:match("AT%+MUID?") then
         if intermediate then muid = intermediate:match("+MUID:%s*\"(.+)\"") end
+     elseif cmd:match("AT%*LTECFG%?") then
+        log.info("misc.rsp","LTECFG?",intermediate)
+        if intermediate then
+            local typ,vol = intermediate:match("PP_TYPE=(%d+),PP_VOLTAGE=(%d+)")
+            if typ then
+                if tonumber(typ)~=sPpType or tonumber(vol)~=sPpVoltage then
+                    req("AT*LTECFG="..sPpType..","..sPpVoltage)
+                end
+            else
+                sys.timerStart(sys.restart,300000,"LTECFG query fail")
+            end
+        end
+    elseif cmd:match("AT%*LTECFG=") then
+        log.info("misc.rsp","LTECFG=",success)
+        if success then
+            sys.timerStart(sys.restart,3000,cmd.." success")
+        else
+            sys.timerStart(sys.restart,300000,"LTECFG set fail")
+        end
     end
 end
 
@@ -208,18 +220,21 @@ function closePwm(id)
     req("AT+SPWM=" .. id .. ",0,0")
 end
 
+
+function setPpVoltage(ppType,ppVoltage)
+    sPpType,sPpVoltage = ppType,ppVoltage
+    req("AT*LTECFG?")
+end
+
 --注册以下AT命令的应答处理函数
-ril.regRsp("+ATWMFT", rsp)
 ril.regRsp("+WISN", rsp)
 ril.regRsp("+CGSN", rsp)
 ril.regRsp("+MUID", rsp)
 ril.regRsp("+WIMEI", rsp)
 ril.regRsp("+AMFAC", rsp)
-ril.regRsp("+CFUN", rsp)
 ril.regRsp('+VER', rsp, 4, '^[%w_]+$')
+ril.regRsp('*LTECFG', rsp, 4, '^.+$')
 req('AT+VER')
---查询是否校准
-req("AT+ATWMFT=99")
 --查询序列号
 req("AT+WISN?")
 --查询IMEI

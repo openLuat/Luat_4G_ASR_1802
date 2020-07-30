@@ -43,6 +43,17 @@ local lac, ci, rssi = "", "", 0
 --cellinfo：当前小区和临近小区信息表
 --multicellcb：获取多小区的回调函数
 local cellinfo, multicellcb = {}
+local curCellSeted
+
+local function cops(data)
+    --+COPS: 0,2,"46000",7
+    local fmt,oper = data:match('COPS:%s*%d+%s*,(%d+)%s*,"(%d+)"')
+    log.info("cops",fmt,oper,curCellSeted)
+    if fmt=="2" and not curCellSeted then
+        cellinfo[1].mcc = tonumber(oper:sub(1,3),16)
+        cellinfo[1].mnc = tonumber(oper:sub(4,5),16)
+    end
+end
 
 --[[
 函数名：creg
@@ -85,8 +96,8 @@ local function creg(data)
             ci = p3
             --产生一个内部消息NET_CELL_CHANGED，表示lac或ci发生了变化
             publish("NET_CELL_CHANGED")
-            cellinfo[1].mcc = tonumber(sim.getMcc(),16)
-            cellinfo[1].mnc = tonumber(sim.getMnc(),16)
+            --cellinfo[1].mcc = tonumber(sim.getMcc(),16)
+            --cellinfo[1].mnc = tonumber(sim.getMnc(),16)
             cellinfo[1].lac = tonumber(lac,16)
             cellinfo[1].ci = tonumber(ci,16)
             cellinfo[1].rssi = 28
@@ -123,25 +134,32 @@ data：当前小区和临近小区信息字符串，例如下面中的每一行�
 ]]
 local function eemLteSvc(data)
     local mcc,mnc,lac,ci,rssi,svcData
-    if data:match("%+EEMLTESVC:%d+, %d+, %d+, .+") then
+    if data:match("%+EEMLTESVC:%s*%d+,%s*%d+,%s*%d+,%s*.+") then
         svcData = string.match(data, "%+EEMLTESVC:(.+)")
-
+        --log.info("eemLteSvc",svcData)
         if svcData then
             svcDataT = string.split(svcData, ', ')
+            --log.info("eemLteSvc1",svcDataT[1],svcDataT[3],svcDataT[4],svcDataT[10],svcDataT[15])
+            if not(svcDataT[1] and svcDataT[3] and svcDataT[4] and svcDataT[10] and svcDataT[15]) then
+                svcDataT = string.split(svcData, ',')
+                log.info("eemLteSvc2",svcDataT[1],svcDataT[3],svcDataT[4],svcDataT[10],svcDataT[15])
+            end
             mcc = svcDataT[1]
             mnc = svcDataT[3]
             lac = svcDataT[4]
             ci = svcDataT[10]
-            rssi = (svcDataT[15]-(svcDataT[15]%3))/3
+            rssi = (tonumber(svcDataT[15])-(tonumber(svcDataT[15])%3))/3
             if rssi>31 then rssi=31 end
             if rssi<0 then rssi=0 end
         end
-        if lac and ci and mcc and mnc then
+        log.info("eemLteSvc1",lac,ci,mcc,mnc)
+        if lac and lac~="0" and ci and ci ~= "0" and mcc and mnc then
             --如果是第一条，清除信息表
             resetCellInfo()
+            curCellSeted = true
             --保存mcc、mnc、lac、ci、rssi、ta
-            cellinfo[1].mcc = mcc
-            cellinfo[1].mnc = mnc
+            cellinfo[1].mcc = tonumber(mcc)
+            cellinfo[1].mnc = tonumber(mnc)
             cellinfo[1].lac = tonumber(lac)
             cellinfo[1].ci = tonumber(ci)
             cellinfo[1].rssi = tonumber(rssi)
@@ -196,7 +214,7 @@ data：当前小区信息字符串，例如下面中的每一行：
 ]]
 local function eemGsmInfoSvc(data)
 	--只处理有效的CENG信息
-	if string.find(data, "%+EEMGINFOSVC: %d+, %d+, %d+, .+") then
+	if string.find(data, "%+EEMGINFOSVC:%s*%d+,%s*%d+,%s*%d+,%s*.+") then
 		local mcc,mnc,lac,ci,ta,rssi
 		local svcData = string.match(data, "%+EEMGINFOSVC:(.+)")
 		if svcData then
@@ -214,9 +232,10 @@ local function eemGsmInfoSvc(data)
 				then rssi = 0
 			end
 		end
-		if lac and ci and mcc and mnc then
+		if lac and lac~="0" and ci and ci ~= "0" and mcc and mnc then
 			--如果是第一条，清除信息表
 			resetCellInfo()
+         curCellSeted = true
 			--保存mcc、mnc、lac、ci、rssi、ta
 			cellinfo[1].mcc = mcc
 			cellinfo[1].mnc = mnc
@@ -259,8 +278,8 @@ local function eemGsmNCInfoSvc(data)
 		end
 		if lac and ci and mcc and mnc then
 			--保存mcc、mnc、lac、ci、rssi、ta
-			cellinfo[id + 2].mcc = mcc
-			cellinfo[id + 2].mnc = mnc
+			cellinfo[id + 2].mcc = tonumber(mcc)
+			cellinfo[id + 2].mnc = tonumber(mnc)
 			cellinfo[id + 2].lac = tonumber(lac)
 			cellinfo[id + 2].ci = tonumber(ci)
 			cellinfo[id + 2].rssi = (tonumber(rssi) == 99) and 0 or tonumber(rssi)
@@ -304,12 +323,13 @@ local function eemUMTSInfoSvc(data)
 				offset = offset + 3
 			end
 		end
-		if lac and ci and mcc and mnc and rssi then
+		if lac and lac~="0" and ci and ci ~= "0" and mcc and mnc and rssi then
 			--如果是第一条，清除信息表
 			resetCellInfo()
+         curCellSeted = true   
 			--保存mcc、mnc、lac、ci、rssi、ta
-			cellinfo[1].mcc = mcc
-			cellinfo[1].mnc = mnc
+			cellinfo[1].mcc = tonumber(mcc)
+			cellinfo[1].mnc = tonumber(mnc)
 			cellinfo[1].lac = tonumber(lac)
 			cellinfo[1].ci = tonumber(ci)
 			cellinfo[1].rssi = tonumber(rssi)
@@ -352,7 +372,7 @@ local function UpdNetMode(data)
 		netMode = netMode_cur
 		publish("NET_UPD_NET_MODE",netMode)
 		log.info("net.NET_UPD_NET_MODE",netMode)   
-		
+		ril.request("AT+COPS?")
 		if netMode == NetMode_LTE then 
 			ril.request("AT+CEREG?")  
 		elseif netMode == NetMode_noNet then 
@@ -372,7 +392,9 @@ prefix：通知的前缀
 返回值：无
 ]]
 local function neturc(data, prefix)
-    if prefix == "+CREG" or prefix == "+CGREG" or prefix == "+CEREG" then
+    if prefix=="+COPS" then
+        cops(data)
+    elseif prefix == "+CREG" or prefix == "+CGREG" or prefix == "+CEREG" then
         --收到网络状态变化时,更新一下信号值
         csqQueryPoll()
         --解析creg信息
@@ -467,6 +489,16 @@ end
 -- @usage net.getRssi()
 function getRssi()
 	return rssi
+end
+
+function getCell()
+	local i,ret = 1,""
+	for i=1,cellinfo.cnt do
+		if cellinfo[i] and cellinfo[i].lac and cellinfo[i].lac ~= 0 and cellinfo[i].ci and cellinfo[i].ci ~= 0 then
+			ret = ret..cellinfo[i].ci.."."..cellinfo[i].rssi.."."
+		end
+	end
+	return ret
 end
 
 --- 获取当前和临近位置区、小区以及信号强度的拼接字符串
@@ -591,6 +623,7 @@ end
 -- @usage net.startQueryAll(60000) -- 1分钟查询1次信号强度，只立即查询1次基站信息
 -- @usage net.startQueryAll(60000,600000) -- 1分钟查询1次信号强度，10分钟查询1次基站信息
 function startQueryAll(...)
+	local arg={ ... }
     csqQueryPoll(arg[1])
     cengQueryPoll(arg[2])
     if flyMode then        
@@ -647,6 +680,7 @@ sys.subscribe("SIM_IND", function(para)
 end)
 
 --注册+CREG和+CENG通知的处理函数
+ril.regUrc("+COPS", neturc)
 ril.regUrc("+CREG", neturc)
 ril.regUrc("+CGREG", neturc)
 ril.regUrc("+CEREG", neturc)
@@ -665,6 +699,7 @@ ril.regRsp("+CSQ", rsp)
 --ril.regRsp("+CENG", rsp)
 ril.regRsp("+CFUN", rsp)-- 飞行模式
 --发送AT命令
+ril.request("AT+COPS?")
 ril.request("AT+CREG=2")
 ril.request("AT+CGREG=2")
 ril.request("AT+CEREG=2")

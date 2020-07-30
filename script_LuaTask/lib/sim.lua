@@ -64,7 +64,9 @@ intermediate：AT命令的应答中的中间信息
 ]]
 local function rsp(cmd, success, response, intermediate)
     if cmd == "AT+ICCID" then
-        iccid = string.match(intermediate, "%+ICCID: (.+)")
+        if intermediate then
+            iccid = string.match(intermediate, "%+ICCID: (.+)")
+        end
     elseif cmd == "AT+CIMI" then
         imsi = intermediate
         --产生一个内部消息IMSI_READY，通知已经读取imsi
